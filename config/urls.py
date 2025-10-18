@@ -2,7 +2,6 @@ from django.contrib import admin
 from django.http import HttpResponse
 from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
-from accounts.views import health
 
 
 def home(request):
@@ -19,11 +18,10 @@ urlpatterns = [
         include(
             [
                 path("auth/", include("accounts.urls")),
-                path("health/", health),
                 path("", include("courses.urls")),
                 path("", include("quizzes.urls")),
                 path("", include("judge.urls")),
-            ]
+            ],
         ),
     ),
 ]
