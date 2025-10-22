@@ -97,52 +97,31 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PAGINATION_CLASS": "common.pagination.DefaultPagination",
     "PAGE_SIZE": 20,
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.UserRateThrottle",
+        "rest_framework.throttling.AnonRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "user": "200/min",
+        "anon": "60/min",
+        "auth": "30/min",
+        "submit": "20/min",
+        "login": "10/min",
+    },
 }
-
-REST_FRAMEWORK.update(
-    {
-        "DEFAULT_THROTTLE_CLASSES": [
-            "rest_framework.throttling.UserRateThrottle",
-            "rest_framework.throttling.AnonRateThrottle",
-        ],
-        "DEFAULT_THROTTLE_RATES": {
-            "user": "200/min",
-            "anon": "60/min",
-            "auth": "30/min",
-            "submit": "20/min",
-            "login": "10/min",
-        },
-        "DEFAULT_AUTHENTICATION_CLASSES": [
-            "rest_framework_simplejwt.authentication.JWTAuthentication",
-            # "rest_framework.authentication.SessionAuthentication",
-        ],
-        "DEFAULT_PERMISSION_CLASSES": [
-            "rest_framework.permissions.IsAuthenticated",
-        ],
-    }
-)
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "CodeAdventure API",
-    "DESCRIPTION": "Courses, Quizzes, Online Judge",
+    "DESCRIPTION": "Learn-to-code platform API",
     "VERSION": "1.0.0",
-    "SERVE_INCLUDE_SCHEMA": False,
+    "SERVE_PERMISSIONS": ["rest_framework.permissions.AllowAny"],
+    "COMPONENT_SPLIT_REQUEST": True,
+    "SECURITY": [{"bearerAuth": []}],
+    "AUTHENTICATION_SOURCES": ["HTTP_AUTHORIZATION"],
+    "SECURITY_SCHEMES": {
+        "bearerAuth": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"}
+    },
 }
-
-SPECTACULAR_SETTINGS.update(
-    {
-        "TITLE": "CodeAdventure API",
-        "DESCRIPTION": "Learn-to-code platform API",
-        "VERSION": "1.0.0",
-        "SERVE_PERMISSIONS": ["rest_framework.permissions.AllowAny"],
-        "COMPONENT_SPLIT_REQUEST": True,
-        "SECURITY": [{"bearerAuth": []}],
-        "AUTHENTICATION_SOURCES": ["HTTP_AUTHORIZATION"],
-        "SECURITY_SCHEMES": {
-            "bearerAuth": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"}
-        },
-    }
-)
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
@@ -158,4 +137,4 @@ CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 CELERY_TASK_TIME_LIMIT = 60
 CELERY_TASK_SOFT_TIME_LIMIT = 55
 
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = False
