@@ -15,6 +15,8 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "rest_framework.authtoken",
+    "rest_framework_simplejwt.token_blacklist",
     "drf_spectacular",
     "django_filters",
     "corsheaders",
@@ -87,7 +89,7 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
-    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.AllowAny",),
+    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_FILTER_BACKENDS": [
         "django_filters.rest_framework.DjangoFilterBackend",
         "rest_framework.filters.OrderingFilter",
@@ -105,9 +107,18 @@ REST_FRAMEWORK.update(
         ],
         "DEFAULT_THROTTLE_RATES": {
             "user": "200/min",
-            "anon": "30/min",
+            "anon": "60/min",
+            "auth": "30/min",
             "submit": "20/min",
+            "login": "10/min",
         },
+        "DEFAULT_AUTHENTICATION_CLASSES": [
+            "rest_framework_simplejwt.authentication.JWTAuthentication",
+            # "rest_framework.authentication.SessionAuthentication",
+        ],
+        "DEFAULT_PERMISSION_CLASSES": [
+            "rest_framework.permissions.IsAuthenticated",
+        ],
     }
 )
 
@@ -118,9 +129,26 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
 }
 
+SPECTACULAR_SETTINGS.update(
+    {
+        "TITLE": "CodeAdventure API",
+        "DESCRIPTION": "Learn-to-code platform API",
+        "VERSION": "1.0.0",
+        "SERVE_PERMISSIONS": ["rest_framework.permissions.AllowAny"],
+        "COMPONENT_SPLIT_REQUEST": True,
+        "SECURITY": [{"bearerAuth": []}],
+        "AUTHENTICATION_SOURCES": ["HTTP_AUTHORIZATION"],
+        "SECURITY_SCHEMES": {
+            "bearerAuth": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"}
+        },
+    }
+)
+
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
