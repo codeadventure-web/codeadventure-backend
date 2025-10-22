@@ -21,5 +21,7 @@ class CustomUserAdmin(UserAdmin):
 
 
 # Re-register User with CustomUserAdmin
-admin.site.unregister(User)
 admin.site.register(User, CustomUserAdmin)
+
+# Edit Profiles separately
+admin.site.register(Profile)
