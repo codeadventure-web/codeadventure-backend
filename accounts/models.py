@@ -31,7 +31,9 @@ class Profile(UUIDModel):
 
     # The 'id' field is inherited from UUIDModel
 
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
+    user = models.OneToOneField(
+        "accounts.User", on_delete=models.CASCADE, related_name="profile"
+    )
     avatar = models.URLField(max_length=200, blank=True, null=True)
     bio = models.TextField(blank=True, null=True)
 
