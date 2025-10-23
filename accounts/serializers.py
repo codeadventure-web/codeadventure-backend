@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import User, Profile
+from django.db import transaction
 
 
 class ProfileSerializer(serializers.ModelSerializer):
@@ -23,6 +24,7 @@ class UserMeSerializer(serializers.ModelSerializer):
             "profile",
         )
 
+    @transaction.atomic
     def update(self, instance, validated):
         profile_data = validated.pop("profile", None)
         for k, v in validated.items():
