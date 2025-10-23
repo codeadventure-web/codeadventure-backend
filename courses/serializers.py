@@ -1,11 +1,37 @@
 from rest_framework import serializers
-from .models import Course, Section, Lesson, Enrollment, Progress
+from .models import Course, Section, Lesson, Progress, Tag
+
+
+class ProgressLiteSer(serializers.ModelSerializer):
+    """
+    A simple serializer to show just the lesson's progress status and score.
+    """
+
+    class Meta:
+        model = Progress
+        fields = ("status", "score")
 
 
 class LessonLiteSer(serializers.ModelSerializer):
+    progress = serializers.SerializerMethodField()
+
     class Meta:
         model = Lesson
-        fields = ("id", "title", "order", "problem", "content_md")
+        fields = ("id", "title", "order", "problem", "content_md", "progress")
+
+    def get_progress(self, obj: Lesson):
+        """
+        Gets the user's progress for this specific lesson.
+
+        We look for a 'progress_map' that the viewset will provide
+        in the serializer's context.
+        """
+        progress_map = self.context.get("progress_map", {})
+        progress = progress_map.get(obj.id)
+
+        if progress:
+            return ProgressLiteSer(progress).data
+        return None
 
 
 class SectionSer(serializers.ModelSerializer):
@@ -17,24 +43,41 @@ class SectionSer(serializers.ModelSerializer):
 
 
 class CourseListSer(serializers.ModelSerializer):
+    tags = serializers.SlugRelatedField(
+        many=True,
+        slug_field="name",
+        queryset=Tag.objects.all(),
+        write_only=True,
+        required=False,
+    )
+
     class Meta:
         model = Course
-        fields = ("id", "title", "slug", "is_published")
+        fields = ("id", "title", "slug", "is_published", "tags")
 
 
 class CourseDetailSer(serializers.ModelSerializer):
     sections = SectionSer(many=True, read_only=True)
 
+    tags = serializers.SlugRelatedField(
+        many=True,
+        slug_field="name",
+        queryset=Tag.objects.all(),
+        write_only=True,
+        required=False,
+    )
+
     class Meta:
         model = Course
-        fields = ("id", "title", "slug", "description", "is_published", "sections")
-
-
-class EnrollmentSer(serializers.ModelSerializer):
-    class Meta:
-        model = Enrollment
-        fields = ("id", "user", "course", "active")
-        read_only_fields = ("user", "active")
+        fields = (
+            "id",
+            "title",
+            "slug",
+            "description",
+            "is_published",
+            "sections",
+            "tags",
+        )
 
 
 class ProgressSer(serializers.ModelSerializer):
