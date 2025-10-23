@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils.text import slugify
 from common.models import UUIDModel, TimeStamped
+from common.enums import ProgressStatus
 
 
 class Tag(UUIDModel, TimeStamped):
@@ -51,8 +52,8 @@ class Progress(UUIDModel, TimeStamped):
     lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE)
     status = models.CharField(
         max_length=20,
-        default="incomplete",
-        choices=[("incomplete", "Incomplete"), ("completed", "Completed")],
+        choices=ProgressStatus.choices,
+        default=ProgressStatus.INCOMPLETE,
     )
     score = models.FloatField(null=True, blank=True)
 
