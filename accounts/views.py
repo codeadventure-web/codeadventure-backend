@@ -1,7 +1,12 @@
 import os
 import redis
 from django.db import connection
-from .serializers import UserMeSerializer, RegisterSerializer
+from .serializers import (
+    UserMeSerializer,
+    RegisterSerializer,
+    ForgotPasswordSerializer,
+    ResetPasswordSerializer,
+)
 from rest_framework import generics, status, throttling
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -136,3 +141,31 @@ class SafeLogoutView(APIView):
             # Treat as already logged out / invalid -> still succeed
             pass
         return Response(status=status.HTTP_205_RESET_CONTENT)
+
+
+class ForgotPasswordView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = ForgotPasswordSerializer(
+            data=request.data, context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        # always return success to avoid user enumeration
+        return Response(
+            {"detail": "If that email exists, we've sent reset instructions."},
+            status=status.HTTP_200_OK,
+        )
+
+
+class ResetPasswordView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = ResetPasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(
+            {"detail": "Password has been reset."}, status=status.HTTP_200_OK
+        )
