@@ -1,0 +1,99 @@
+name: Django CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: codeadventure
+          POSTGRES_PASSWORD: codeadventure
+          POSTGRES_DB: codeadventure_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U codeadventure -d codeadventure_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      DJANGO_SETTINGS_MODULE: config.settings.base
+      DJANGO_SECRET_KEY: dummy-key-for-ci
+      DJANGO_DEBUG: "False"
+
+      POSTGRES_DB: codeadventure_test
+      POSTGRES_USER: codeadventure
+      POSTGRES_PASSWORD: codeadventure
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_PORT: 5432
+      DATABASE_URL: postgres://codeadventure:codeadventure@127.0.0.1:5432/codeadventure_test
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+            pyproject.toml
+            setup.cfg
+
+      - name: Install OS deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpq-dev
+
+      - name: Install Python deps
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          if [ -f requirements-dev.txt ]; then
+            pip install -r requirements-dev.txt
+          else
+            pip install ruff pytest
+          fi
+
+      - name: Wait for Postgres
+        run: |
+          for i in {1..15}; do
+            nc -z 127.0.0.1 5432 && echo "Postgres is up" && break
+            echo "Waiting for Postgres..."
+            sleep 2
+          done
+
+      - name: Ruff lint
+        run: |
+          source .venv/bin/activate
+          ruff check .
+
+      - name: Ruff format check
+        run: |
+          source .venv/bin/activate
+          ruff format --check .
+
+      - name: Run migrations
+        run: |
+          source .venv/bin/activate
+          python manage.py migrate --noinput
+
+      - name: Run tests
+        run: |
+          source .venv/bin/activate
+          # change to pytest -v if you use pytest
+          python manage.py test
