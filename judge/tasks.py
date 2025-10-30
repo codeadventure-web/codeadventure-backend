@@ -1,5 +1,5 @@
 from config.celery import app
-from .models import Submission, Language
+from .models import Submission
 from .runner_client import run_in_sandbox
 
 

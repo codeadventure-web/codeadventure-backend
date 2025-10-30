@@ -1,7 +1,7 @@
 from rest_framework import views, generics, permissions, response
 from django.shortcuts import get_object_or_404
 from .models import Quiz, QuizAttempt, QuizAnswer
-from .serializers import QuizSer, AttemptCreateSer, AttemptSubmitSer, AttemptResultSer
+from .serializers import QuizSer, AttemptSubmitSer, AttemptResultSer
 from .grading import grade_attempt
 
 
