@@ -1,13 +1,16 @@
 import requests
-from rest_framework import serializers
-from .models import User, Profile
-from django.db import transaction
-from django.contrib.auth.tokens import PasswordResetTokenGenerator
-from django.utils.encoding import force_str, smart_bytes
-from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
-from django.core.mail import send_mail
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.core.mail import send_mail
+from django.db import transaction
+from django.utils.encoding import force_str, smart_bytes
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from rest_framework import serializers
+
+from .models import Profile
+
+User = get_user_model()
 
 
 class ProfileSerializer(serializers.ModelSerializer):
@@ -32,13 +35,18 @@ class UserMeSerializer(serializers.ModelSerializer):
         )
 
     @transaction.atomic
-    def update(self, instance, validated):
-        profile_data = validated.pop("profile", None)
-        for k, v in validated.items():
-            setattr(instance, k, v)
+    def update(self, instance, validated_data):
+        profile_data = validated_data.pop("profile", None)
+
+        # update user fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
         instance.save()
+
+        # update or create profile
         if profile_data:
             Profile.objects.update_or_create(user=instance, defaults=profile_data)
+
         return instance
 
 
@@ -49,8 +57,9 @@ class RegisterSerializer(serializers.ModelSerializer):
         model = User
         fields = ("username", "email", "password")
 
-    def create(self, data):
-        return User.objects.create_user(**data)
+    def create(self, validated_data):
+        # this will hash the password
+        return User.objects.create_user(**validated_data)
 
 
 class ForgotPasswordSerializer(serializers.Serializer):
@@ -65,13 +74,12 @@ class ForgotPasswordSerializer(serializers.Serializer):
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
-            return
+            return  # silently succeed
 
         token_gen = PasswordResetTokenGenerator()
         uidb64 = urlsafe_base64_encode(smart_bytes(user.pk))
         token = token_gen.make_token(user)
 
-        # frontend URL for password reset
         frontend_url = getattr(
             settings,
             "FRONTEND_RESET_PASSWORD_URL",
@@ -80,10 +88,13 @@ class ForgotPasswordSerializer(serializers.Serializer):
         reset_link = f"{frontend_url}?uid={uidb64}&token={token}"
 
         subject = "Reset your CodeAdventure password"
-        message = f"Hi {user.username},\n\nClick the link below to reset your password:\n{reset_link}\n\nIf you didn't request this, ignore this email."
+        message = (
+            f"Hi {user.username},\n\n"
+            f"Click the link below to reset your password:\n{reset_link}\n\n"
+            f"If you didn't request this, ignore this email."
+        )
         from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None)
 
-        # if email backend is not configured, this will just be a no-op in console/email backend
         send_mail(subject, message, from_email, [email], fail_silently=True)
 
 
@@ -106,7 +117,6 @@ class ResetPasswordSerializer(serializers.Serializer):
         if not token_gen.check_token(user, token):
             raise serializers.ValidationError("Invalid or expired token")
 
-        # keep user for save()
         attrs["user"] = user
         return attrs
 
@@ -118,31 +128,29 @@ class ResetPasswordSerializer(serializers.Serializer):
         return user
 
 
-User = get_user_model()
-
-
 class GoogleLoginSerializer(serializers.Serializer):
     id_token = serializers.CharField()
 
     def validate(self, attrs):
         from google.oauth2 import id_token as google_id_token
-        from google.auth.transport import requests
+        from google.auth.transport import requests as google_requests
 
         token = attrs.get("id_token")
+        client_id = getattr(settings, "GOOGLE_CLIENT_ID", None)
+
         try:
             idinfo = google_id_token.verify_oauth2_token(
                 token,
-                requests.Request(),
-                # put your Google client ID here (web client id)
-                getattr(settings, "GOOGLE_CLIENT_ID", None),
+                google_requests.Request(),
+                client_id,
             )
         except Exception:
             raise serializers.ValidationError("Invalid Google token")
 
-        if idinfo.get("iss") not in [
+        if idinfo.get("iss") not in (
             "accounts.google.com",
             "https://accounts.google.com",
-        ]:
+        ):
             raise serializers.ValidationError("Invalid issuer")
 
         email = idinfo.get("email")
@@ -157,13 +165,20 @@ class GoogleLoginSerializer(serializers.Serializer):
         email = self.validated_data["email"]
         google_data = self.validated_data["google_data"]
 
-        user, created = User.objects.get_or_create(
+        user = User.objects.filter(email=email).first()
+        if user:
+            return user
+
+        username = email.split("@")[0]
+        first_name = google_data.get("given_name", "")
+        last_name = google_data.get("family_name", "")
+
+        # create() doesn't take "defaults=", only get_or_create() does
+        user = User.objects.create(
+            username=username,
             email=email,
-            defaults={
-                "username": email.split("@")[0],
-                "first_name": google_data.get("given_name", ""),
-                "last_name": google_data.get("family_name", ""),
-            },
+            first_name=first_name,
+            last_name=last_name,
         )
         return user
 
@@ -174,7 +189,6 @@ class GithubLoginSerializer(serializers.Serializer):
     def validate(self, attrs):
         access_token = attrs.get("access_token")
 
-        # 1. get user basic info
         user_resp = requests.get(
             "https://api.github.com/user",
             headers={"Authorization": f"Bearer {access_token}"},
@@ -187,11 +201,11 @@ class GithubLoginSerializer(serializers.Serializer):
         github_id = user_data.get("id")
         github_login = user_data.get("login")
         name = user_data.get("name") or ""
-        # fallback to name split
+
         first_name = name.split(" ")[0] if name else ""
         last_name = " ".join(name.split(" ")[1:]) if name and " " in name else ""
 
-        # get emails to find primary/verified
+        # get emails
         email = None
         emails_resp = requests.get(
             "https://api.github.com/user/emails",
@@ -204,19 +218,18 @@ class GithubLoginSerializer(serializers.Serializer):
                     email = item.get("email")
                     break
 
-        # GitHub users can hide email => create placeholder
         if not email:
             email = user_data.get("email")
 
         if not email:
-            # raise serializers.ValidationError("GitHub account has no public email")
+            # final fallback
             email = f"{github_login or github_id}@github.local"
 
         attrs["github_data"] = user_data
         attrs["email"] = email
         attrs["first_name"] = first_name
         attrs["last_name"] = last_name
-        attrs["username_guess"] = github_login or (email.split("@")[0])
+        attrs["username_guess"] = github_login or email.split("@")[0]
         return attrs
 
     def create_or_get_user(self):
@@ -225,12 +238,14 @@ class GithubLoginSerializer(serializers.Serializer):
         last_name = self.validated_data["last_name"]
         username_guess = self.validated_data["username_guess"]
 
-        user, created = User.objects.get_or_create(
+        user = User.objects.filter(email=email).first()
+        if user:
+            return user
+
+        user = User.objects.create(
+            username=username_guess,
             email=email,
-            defaults={
-                "username": username_guess,
-                "first_name": first_name,
-                "last_name": last_name,
-            },
+            first_name=first_name,
+            last_name=last_name,
         )
         return user
