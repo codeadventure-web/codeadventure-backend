@@ -6,6 +6,8 @@ from .serializers import (
     RegisterSerializer,
     ForgotPasswordSerializer,
     ResetPasswordSerializer,
+    GoogleLoginSerializer,
+    GithubLoginSerializer,
 )
 from rest_framework import generics, status, throttling
 from rest_framework.views import APIView
@@ -169,3 +171,48 @@ class ResetPasswordView(APIView):
         return Response(
             {"detail": "Password has been reset."}, status=status.HTTP_200_OK
         )
+
+
+class GoogleLoginView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = GoogleLoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.create_or_get_user()
+
+        # issue JWT using SimpleJWT
+        refresh = RefreshToken.for_user(user)
+        data = {
+            "refresh": str(refresh),
+            "access": str(refresh.access_token),
+            "user": {
+                "id": user.pk,
+                "username": user.username,
+                "email": user.email,
+            },
+            "provider": "google",
+        }
+        return Response(data, status=status.HTTP_200_OK)
+
+
+class GithubLoginView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = GithubLoginSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.create_or_get_user()
+
+        refresh = RefreshToken.for_user(user)
+        data = {
+            "refresh": str(refresh),
+            "access": str(refresh.access_token),
+            "user": {
+                "id": user.pk,
+                "username": user.username,
+                "email": user.email,
+            },
+            "provider": "github",
+        }
+        return Response(data, status=status.HTTP_200_OK)
