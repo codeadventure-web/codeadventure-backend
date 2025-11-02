@@ -11,7 +11,7 @@ User = get_user_model()
 def test_forgot_password_always_200(api_client, user, settings):
     settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
     resp = api_client.post(
-        "/accounts/password/forgot/",
+        "/auth/password/forgot/",
         {
             "email": user.email,
         },
@@ -29,7 +29,7 @@ def test_reset_password_flow(api_client, user):
     token = token_gen.make_token(user)
 
     resp = api_client.post(
-        "/accounts/password/reset/",
+        "/auth/password/reset/",
         {
             "uid": uidb64,
             "token": token,
@@ -41,7 +41,7 @@ def test_reset_password_flow(api_client, user):
 
     # login with new password
     login = api_client.post(
-        "/accounts/login/",
+        "/auth/login/",
         {
             "username": user.username,
             "password": "newpass123",

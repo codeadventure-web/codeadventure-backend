@@ -7,6 +7,7 @@ from django.db import transaction
 from django.utils.encoding import force_str, smart_bytes
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework import serializers
+from google.oauth2 import id_token as google_id_token  # noqa
 
 from .models import Profile
 

@@ -27,7 +27,7 @@ def test_google_login_creates_user(monkeypatch, api_client, settings):
     )
 
     resp = api_client.post(
-        "/accounts/social/google/",
+        "/auth/social/google/",
         {
             "id_token": "fake-token",
         },
@@ -71,7 +71,7 @@ def test_github_login_creates_user(monkeypatch, api_client):
     monkeypatch.setattr(accounts_serializers.requests, "get", fake_get)
 
     resp = api_client.post(
-        "/accounts/social/github/",
+        "/auth/social/github/",
         {
             "access_token": "gh-token",
         },

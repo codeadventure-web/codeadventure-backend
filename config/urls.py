@@ -24,4 +24,5 @@ urlpatterns = [
             ],
         ),
     ),
+    path("auth/", include("accounts.urls")),
 ]
