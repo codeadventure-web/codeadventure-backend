@@ -1,8 +1,11 @@
-from rest_framework import viewsets, mixins, permissions, decorators, response, status
-from django.shortcuts import get_object_or_404
-from .models import Course, Section, Lesson, Enrollment, Progress
+from rest_framework import viewsets, mixins, permissions, decorators, response, filters
+from django_filters.rest_framework import DjangoFilterBackend
+from django.db.models import Prefetch
+from .models import Course, Progress
 from .serializers import CourseListSer, CourseDetailSer, ProgressSer
 from common.permissions import IsAdminOrReadOnly
+from .filters import CourseFilter
+from . import services
 
 
 class CourseViewSet(viewsets.ModelViewSet):
@@ -10,22 +13,61 @@ class CourseViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminOrReadOnly]
     lookup_field = "slug"
 
-    def get_serializer_class(self):
-        return CourseDetailSer if self.action in ["retrieve"] else CourseListSer
-
-    filterset_fields = ["is_published"]
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+    filterset_class = CourseFilter
     search_fields = ["title", "description"]
     ordering_fields = ["title", "created_at"]
 
-    @decorators.action(
-        detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated]
-    )
-    def enroll(self, request, slug=None):
-        course = self.get_object()
-        Enrollment.objects.get_or_create(
-            user=request.user, course=course, defaults={"active": True}
-        )
-        return response.Response({"enrolled": True})
+    def get_serializer_class(self):
+        return CourseDetailSer if self.action in ["retrieve"] else CourseListSer
+
+    def get_queryset(self):
+        """
+        Optimize queries by prefetching related data.
+        """
+        qs = super().get_queryset()
+
+        if self.action == "retrieve":
+            # Prefetch sections and lessons as before
+            qs = qs.prefetch_related("sections__lessons")
+
+            # If the user is logged in, also prefetch their *own* progress
+            # for the lessons in this course.
+            if self.request.user.is_authenticated:
+                qs = qs.prefetch_related(
+                    Prefetch(
+                        "sections__lessons__progress_set",
+                        queryset=Progress.objects.filter(user=self.request.user),
+                        to_attr="user_progress",
+                    )
+                )
+        return qs
+
+    def retrieve(self, request, *args, **kwargs):
+        """
+        Override 'retrieve' to build a progress map for the serializer.
+        """
+        instance = self.get_object()
+
+        # Build a simple map of {lesson_id: progress_object}
+        progress_map = {}
+        if request.user.is_authenticated:
+            for section in instance.sections.all():
+                for lesson in section.lessons.all():
+                    # 'user_progress' is the list we created with 'to_attr'
+                    if hasattr(lesson, "user_progress") and lesson.user_progress:
+                        progress_map[lesson.id] = lesson.user_progress[0]
+
+        # Pass this map to the serializer via its context
+        context = self.get_serializer_context()
+        context["progress_map"] = progress_map
+
+        serializer = self.get_serializer(instance, context=context)
+        return response.Response(serializer.data)
 
 
 class LessonProgressView(
@@ -35,18 +77,19 @@ class LessonProgressView(
     serializer_class = ProgressSer
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_queryset(self):
+        return Progress.objects.filter(user=self.request.user)
+
     @decorators.action(
         detail=False, methods=["get"], url_path=r"by-lesson/(?P<lesson_id>[^/.]+)"
     )
     def by_lesson(self, request, lesson_id=None):
-        prg, _ = Progress.objects.get_or_create(user=request.user, lesson_id=lesson_id)
+        prg, _ = services.get_or_create_progress(user=request.user, lesson_id=lesson_id)
         return response.Response(ProgressSer(prg).data)
 
     @decorators.action(
         detail=False, methods=["patch"], url_path=r"complete/(?P<lesson_id>[^/.]+)"
     )
     def complete(self, request, lesson_id=None):
-        prg, _ = Progress.objects.get_or_create(user=request.user, lesson_id=lesson_id)
-        prg.status = "completed"
-        prg.save(update_fields=["status"])
+        prg = services.complete_lesson_for_user(user=request.user, lesson_id=lesson_id)
         return response.Response(ProgressSer(prg).data)
