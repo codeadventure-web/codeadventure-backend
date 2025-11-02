@@ -37,7 +37,7 @@ def test_login(api_client, user):
 
 @pytest.mark.django_db
 def test_me_requires_auth(api_client):
-    resp = api_client.get("/accounts/me/")
+    resp = api_client.get("/auth/me/")
     assert resp.status_code == 401  # IsAuthenticated
 
 
@@ -56,7 +56,7 @@ def test_me_get_and_patch(api_client, user):
     api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
 
     # GET
-    resp = api_client.get("/accounts/me/")
+    resp = api_client.get("/auth/me/")
     assert resp.status_code == 200
     assert resp.data["username"] == "dao"
 
