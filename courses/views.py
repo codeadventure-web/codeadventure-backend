@@ -26,21 +26,14 @@ class CourseViewSet(viewsets.ModelViewSet):
         return CourseDetailSer if self.action in ["retrieve"] else CourseListSer
 
     def get_queryset(self):
-        """
-        Optimize queries by prefetching related data.
-        """
         qs = super().get_queryset()
-
         if self.action == "retrieve":
-            # Prefetch sections and lessons as before
-            qs = qs.prefetch_related("sections__lessons")
+            qs = qs.prefetch_related("lessons")
 
-            # If the user is logged in, also prefetch their *own* progress
-            # for the lessons in this course.
             if self.request.user.is_authenticated:
                 qs = qs.prefetch_related(
                     Prefetch(
-                        "sections__lessons__progress_set",
+                        "lessons__progress_set",
                         queryset=Progress.objects.filter(user=self.request.user),
                         to_attr="user_progress",
                     )
@@ -48,24 +41,16 @@ class CourseViewSet(viewsets.ModelViewSet):
         return qs
 
     def retrieve(self, request, *args, **kwargs):
-        """
-        Override 'retrieve' to build a progress map for the serializer.
-        """
         instance = self.get_object()
-
-        # Build a simple map of {lesson_id: progress_object}
         progress_map = {}
-        if request.user.is_authenticated:
-            for section in instance.sections.all():
-                for lesson in section.lessons.all():
-                    # 'user_progress' is the list we created with 'to_attr'
-                    if hasattr(lesson, "user_progress") and lesson.user_progress:
-                        progress_map[lesson.id] = lesson.user_progress[0]
 
-        # Pass this map to the serializer via its context
+        if request.user.is_authenticated:
+            for lesson in instance.lessons.all():
+                if hasattr(lesson, "user_progress") and lesson.user_progress:
+                    progress_map[lesson.id] = lesson.user_progress[0]
+
         context = self.get_serializer_context()
         context["progress_map"] = progress_map
-
         serializer = self.get_serializer(instance, context=context)
         return response.Response(serializer.data)
 

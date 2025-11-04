@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Course, Section, Lesson, Progress, Tag
+from .models import Course, Lesson, Progress, Tag
 
 
 # A custom admin for the new Tag model
@@ -15,9 +15,15 @@ class CourseAdmin(admin.ModelAdmin):
     filter_horizontal = ("tags",)  # Makes picking tags easier
 
 
+class LessonAdmin(admin.ModelAdmin):
+    list_display = ("title", "course", "order")
+    list_filter = ("course",)
+    search_fields = ("title",)
+    ordering = ("course", "order")
+
+
 # Register models
 admin.site.register(Course, CourseAdmin)
 admin.site.register(Tag, TagAdmin)
-admin.site.register(Section)
 admin.site.register(Lesson)
 admin.site.register(Progress)
