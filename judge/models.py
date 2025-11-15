@@ -6,6 +6,12 @@ class Language(UUIDModel):
     key = models.CharField(max_length=20, unique=True)  # "python", "cpp", "java"
     version = models.CharField(max_length=50)
 
+    class Meta:
+        ordering = ("key",)
+
+    def __str__(self) -> str:
+        return f"{self.key} ({self.version})"
+
 
 class Problem(UUIDModel, TimeStamped):
     title = models.CharField(max_length=200)
@@ -13,6 +19,12 @@ class Problem(UUIDModel, TimeStamped):
     statement_md = models.TextField()
     time_limit_ms = models.IntegerField(default=2000)
     memory_limit_mb = models.IntegerField(default=256)
+
+    class Meta:
+        ordering = ("title",)
+
+    def __str__(self) -> str:
+        return self.title
 
 
 class TestCase(UUIDModel, TimeStamped):
@@ -22,6 +34,13 @@ class TestCase(UUIDModel, TimeStamped):
     input_data = models.TextField()
     expected_output = models.TextField()
     hidden = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ("created_at",)
+
+    def __str__(self) -> str:
+        visibility = "hidden" if self.hidden else "public"
+        return f"TestCase({self.problem.slug}, {visibility})"
 
 
 class Submission(UUIDModel, TimeStamped):
@@ -43,3 +62,15 @@ class Submission(UUIDModel, TimeStamped):
         ],
     )
     summary = models.JSONField(default=dict)
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=("user", "problem")),
+            models.Index(fields=("problem", "status")),
+        ]
+
+    def __str__(self) -> str:
+        return (
+            f"Submission({self.id}) {self.user} -> {self.problem.slug} [{self.status}]"
+        )
