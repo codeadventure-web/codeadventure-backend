@@ -20,6 +20,15 @@ class Problem(UUIDModel, TimeStamped):
     time_limit_ms = models.IntegerField(default=2000)
     memory_limit_mb = models.IntegerField(default=256)
 
+    # NEW: per-problem language restriction
+    # If this is empty => all languages are allowed (for old / generic problems)
+    allowed_languages = models.ManyToManyField(
+        Language,
+        related_name="problems",
+        blank=True,
+        help_text="If empty, all languages are allowed for this problem.",
+    )
+
     class Meta:
         ordering = ("title",)
 
