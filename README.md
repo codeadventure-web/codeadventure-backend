@@ -36,6 +36,6 @@ CodeAdventure is a web platform supporting online programming training. The main
 ### How to install
 ```bash
 git clone https://github.com/codeadventure-web/codeadventure-backend.git
-cd ten-du-an
+cd codeadventure-backend
 pip install -r requirements.txt
 python manage.py runserver
