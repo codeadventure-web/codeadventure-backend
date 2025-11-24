@@ -20,6 +20,7 @@ from .serializers import (
 )
 from common.permissions import IsAdminOrReadOnly, IsOwner
 from .tasks import run_submission
+from django.db import transaction
 
 
 class SubmitThrottle(UserRateThrottle):
@@ -99,7 +100,7 @@ class SubmissionViewSet(
         )
 
         # 5. Enqueue async judge
-        run_submission.delay(str(sub.id))
+        transaction.on_commit(lambda: run_submission.delay(str(sub.id)))
 
         # 6. Response
         return response.Response(
