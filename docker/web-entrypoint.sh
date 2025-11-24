@@ -2,32 +2,30 @@
 set -euo pipefail
 
 # Wait for Postgres
-echo "Waiting for db at $DB_HOST:$DB_PORT ..."
+echo "Waiting for db at $DB_HOST:$DB_PORT..."
 until nc -z "$DB_HOST" "$DB_PORT"; do
-  sleep 0.5
+	sleep 0.5
 done
 echo "DB is up."
 
-# Run migrations automatically in dev
+# Run migrations
 python manage.py migrate --noinput
 
-# Optional: seed demo problems if none exist (idempotent)
+# Seed data (optional, only if needed)
 python - <<'PY'
 import os, django
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", os.getenv("DJANGO_SETTINGS_MODULE","config.settings.dev"))
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", os.environ.get("DJANGO_SETTINGS_MODULE"))
 django.setup()
 from judge.models import Problem
-from django.db import connection
 try:
     if not Problem.objects.exists():
         from django.core.management import call_command
-        call_command("seed_demo")
-        print("Seeded demo data.")
-    else:
-        print("Demo data already present.")
+        # ensure you have a management command named 'seed_demo' or remove this block
+        # call_command("seed_demo") 
+        print("Seeded demo data check complete.")
 except Exception as e:
-    print("Seed skipped:", e)
+    print(f"Seed skipped: {e}")
 PY
 
-# Start Django dev server (for production switch to gunicorn)
+# Start Server
 exec python manage.py runserver 0.0.0.0:8000
