@@ -66,6 +66,7 @@ class Submission(UUIDModel, TimeStamped):
             ("ac", "Accepted"),
             ("wa", "Wrong Answer"),
             ("tle", "Time Limit"),
+            ("mle", "Memory Limit"),
             ("re", "Runtime Error"),
             ("ce", "Compile Error"),
         ],
