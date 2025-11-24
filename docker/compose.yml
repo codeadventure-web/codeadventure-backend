@@ -1,20 +1,15 @@
+# docker/compose.yml
 x-app-env: &app-env
   DJANGO_SETTINGS_MODULE: config.settings.dev
-  # Set DEBUG=True for dev; override in prod
   DEBUG: "True"
-  # DB
   DB_ENGINE: django.db.backends.postgresql
   DB_NAME: codeadventure_db
   DB_USER: codeadventure_user
   DB_PASSWORD: strongpassword123
   DB_HOST: db
   DB_PORT: "5432"
-  # Redis / Celery
   REDIS_URL: redis://redis:6379/0
-  # Allow local dev UI origins (change as needed)
-  CORS_ALLOWED_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
-  # Timezone (optional)
-  TZ: Asia/Ho_Chi_Minh
+  TMPDIR: /tmp
 
 services:
   db:
@@ -28,11 +23,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB} -h 127.0.0.1",
-        ]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -54,7 +45,7 @@ services:
     environment:
       <<: *app-env
     volumes:
-      - ..:/app:delegated # live code reload in dev
+      - ..:/app:delegated
     ports:
       - "8000:8000"
     command: ["/app/docker/web-entrypoint.sh"]
@@ -69,15 +60,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
-      web:
-        condition: service_started
     environment:
       <<: *app-env
-      # comment these two to run real async
-      # CELERY_TASK_ALWAYS_EAGER: "True"
-      # CELERY_TASK_EAGER_PROPAGATES: "True"
     volumes:
       - ..:/app:delegated
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp:/tmp
     command: ["celery", "-A", "config.celery:app", "worker", "-l", "info"]
     restart: unless-stopped
 
@@ -96,6 +84,22 @@ services:
       - ..:/app:delegated
     command: ["celery", "-A", "config.celery:app", "beat", "-l", "info"]
     restart: unless-stopped
+
+  sandbox-python:
+    build:
+      context: ..
+      dockerfile: docker/sandbox-python.Dockerfile
+    image: codeadventure-python:3.12
+    command: ["true"]
+    restart: "no"
+
+  sandbox-cpp:
+    build:
+      context: ..
+      dockerfile: docker/sandbox-cpp.Dockerfile
+    image: codeadventure-cpp:latest
+    command: ["true"]
+    restart: "no"
 
 volumes:
   pgdata:
