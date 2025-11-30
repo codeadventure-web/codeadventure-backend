@@ -18,6 +18,9 @@ class Tag(UUIDModel, TimeStamped):
 
 
 class Course(UUIDModel, TimeStamped):
+    class Meta:
+        ordering = ["title"]
+
     title = models.CharField(max_length=200)
     slug = models.SlugField(unique=True)
     description = models.TextField(blank=True)
@@ -27,18 +30,11 @@ class Course(UUIDModel, TimeStamped):
     tags = models.ManyToManyField(Tag, blank=True, related_name="courses")
 
 
-class Section(UUIDModel, TimeStamped):
-    course = models.ForeignKey(
-        Course, on_delete=models.CASCADE, related_name="sections"
-    )
-    title = models.CharField(max_length=200)
-    order = models.PositiveIntegerField(default=0)
-
-
 class Lesson(UUIDModel, TimeStamped):
-    section = models.ForeignKey(
-        Section, on_delete=models.CASCADE, related_name="lessons"
-    )
+    class Meta:
+        ordering = ["order", "created_at"]
+
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="lessons")
     title = models.CharField(max_length=200)
     order = models.PositiveIntegerField(default=0)
     content_md = models.TextField(blank=True)

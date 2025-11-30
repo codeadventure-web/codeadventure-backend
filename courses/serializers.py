@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Course, Section, Lesson, Progress, Tag
+from .models import Course, Lesson, Progress, Tag
 
 
 class ProgressLiteSer(serializers.ModelSerializer):
@@ -34,20 +34,11 @@ class LessonLiteSer(serializers.ModelSerializer):
         return None
 
 
-class SectionSer(serializers.ModelSerializer):
-    lessons = LessonLiteSer(many=True, read_only=True)
-
-    class Meta:
-        model = Section
-        fields = ("id", "title", "order", "lessons")
-
-
 class CourseListSer(serializers.ModelSerializer):
     tags = serializers.SlugRelatedField(
         many=True,
         slug_field="name",
         queryset=Tag.objects.all(),
-        write_only=True,
         required=False,
     )
 
@@ -57,13 +48,11 @@ class CourseListSer(serializers.ModelSerializer):
 
 
 class CourseDetailSer(serializers.ModelSerializer):
-    sections = SectionSer(many=True, read_only=True)
-
+    lessons = LessonLiteSer(many=True, read_only=True)
     tags = serializers.SlugRelatedField(
         many=True,
         slug_field="name",
         queryset=Tag.objects.all(),
-        write_only=True,
         required=False,
     )
 
@@ -75,7 +64,7 @@ class CourseDetailSer(serializers.ModelSerializer):
             "slug",
             "description",
             "is_published",
-            "sections",
+            "lessons",
             "tags",
         )
 

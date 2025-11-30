@@ -66,7 +66,7 @@ jobs:
           if [ -f requirements-dev.txt ]; then
             pip install -r requirements-dev.txt
           else
-            pip install ruff pytest
+            pip install ruff pytest pytest-django pytest-cov
           fi
 
       - name: Wait for Postgres
@@ -95,5 +95,4 @@ jobs:
       - name: Run tests
         run: |
           source .venv/bin/activate
-          # change to pytest -v if you use pytest
-          python manage.py test
+          pytest --cov=.

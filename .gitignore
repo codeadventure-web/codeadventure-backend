@@ -76,3 +76,14 @@ celerybeat-schedule
 celerybeat-schedule-wal
 celerybeat-schedule-shm
 celerybeat.pid
+# -----------------------------------------
+# Key SSH
+# -----------------------------------------
+key
+key.pub
+id_rsa
+id_rsa.pub
+id_dsa
+id_ecdsa
+id_ed25519
+known_hosts

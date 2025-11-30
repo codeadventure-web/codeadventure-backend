@@ -1,16 +1,23 @@
-# Reuse the same environment as web
+# docker/worker.Dockerfile
 FROM python:3.13-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl netcat-openbsd && \
+    curl \
+    netcat-openbsd \
+    docker.io && \
     rm -rf /var/lib/apt/lists/*
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    PATH="/root/.local/bin:$PATH"
+    PATH="/root/.local/bin:$PATH" \
+    TMPDIR=/tmp
 
 WORKDIR /app
+
 COPY requirements.txt /app/requirements.txt
 RUN pip install --upgrade pip && pip install -r /app/requirements.txt
+
 COPY . /app
+
+CMD ["celery", "-A", "config.celery:app", "worker", "-l", "info"]

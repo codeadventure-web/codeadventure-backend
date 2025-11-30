@@ -8,6 +8,8 @@ from .views import (
     LoginView,
     ForgotPasswordView,
     ResetPasswordView,
+    GoogleLoginView,
+    GithubLoginView,
 )
 
 urlpatterns = [
@@ -19,4 +21,6 @@ urlpatterns = [
     path("health/", health, name="health"),
     path("password/forgot/", ForgotPasswordView.as_view(), name="forgot_password"),
     path("password/reset/", ResetPasswordView.as_view(), name="reset_password"),
+    path("social/google/", GoogleLoginView.as_view(), name="social_google"),
+    path("social/github/", GithubLoginView.as_view(), name="social_github"),
 ]
