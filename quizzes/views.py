@@ -9,19 +9,30 @@ class QuizDetailView(generics.ListAPIView):
     queryset = Quiz.objects.all()
     serializer_class = QuizSer
     permission_classes = [permissions.IsAuthenticated]
-    lookup_field = 'id'
 class QuizListCreateView(generics.ListCreateAPIView):
     queryset = Quiz.objects.all()
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [permissions.IsAdminUser()]
+        return [permissions.IsAuthenticated()]
     serializer_class = QuizSer
 # Quiz retrieve, update and delete
 class QuizRetrieveUpdateDelete(generics.RetrieveUpdateDestroyAPIView):
     queryset = Quiz.objects.all()
+    def get_permissions(self):
+        if self.request.method in['PUT', 'PATCH', 'DELETE']:
+            return [permissions.IsAdminUser()]
+        return [permissions.IsAuthenticated()]
     serializer_class = QuizSer
     lookup_field = 'id'
 #-----------------------------------#  
 # Question create and view
 class QuestionListCreateView(generics.ListCreateAPIView):
     serializer_class = QuestionSer
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [permissions.IsAdminUser()]
+        return [permissions.IsAuthenticated()]
     def get_queryset(self):
         quiz_id = self.kwargs.get('quiz_id')
         return Question.objects.filter(quiz_id=quiz_id)
@@ -32,12 +43,17 @@ class QuestionListCreateView(generics.ListCreateAPIView):
 # Question retrieve, update and delete
 class QuestionRetrieveUpdateDelete(generics.RetrieveUpdateDestroyAPIView):
     queryset = Question.objects.all()
+    permission_classes = [permissions.IsAdminUser]
     serializer_class = QuestionSer
     lookup_field = 'id'
 #-----------------------------------#
 # Choice create and view 
 class ChoiceListCreateView(generics.ListCreateAPIView):
     serializer_class = ChoiceSer
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [permissions.IsAdminUser()]
+        return [permissions.IsAuthenticated()]
     def get_queryset(self):
         question_id = self.kwargs.get('question_id')
         return Choice.objects.filter(question_id=question_id)
@@ -48,6 +64,7 @@ class ChoiceListCreateView(generics.ListCreateAPIView):
 # Choice retrieve, update and delete
 class ChoiceRetrieveUpdateDelete(generics.RetrieveUpdateDestroyAPIView):
     queryset = Choice.objects.all()
+    permission_classes = [permissions.IsAdminUser]
     serializer_class = ChoiceSer
     lookup_field = 'id'
 
