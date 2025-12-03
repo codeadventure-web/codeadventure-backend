@@ -29,6 +29,9 @@ class Course(UUIDModel, TimeStamped):
     # Add ManyToManyField to link Courses and Tags
     tags = models.ManyToManyField(Tag, blank=True, related_name="courses")
 
+    def __str__(self):
+        return self.title
+
 
 class Lesson(UUIDModel, TimeStamped):
     class Meta:
