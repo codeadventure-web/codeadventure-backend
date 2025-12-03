@@ -10,7 +10,8 @@ def test_course_list_filter(api_client, course_python, tag_python):
     # Test filter by tag
     resp = api_client.get(f"{url}?tags={tag_python.slug}")
     assert resp.status_code == 200
-    assert len(resp.data) == 1
+    # assert len(resp.data) == 1
+    assert len(resp.data["results"]) == 1
     assert resp.data[0]["title"] == course_python.title
 
 
