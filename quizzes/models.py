@@ -10,7 +10,7 @@ class Quiz(UUIDModel, TimeStamped):
 
 class Question(UUIDModel, TimeStamped):
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name="questions")
-    text = models.TextField() # question
+    text = models.TextField()  # question
     type = models.CharField(
         max_length=20, choices=[("single", "Single"), ("multi", "Multi")]
     )
@@ -20,7 +20,7 @@ class Choice(UUIDModel, TimeStamped):
     question = models.ForeignKey(
         Question, on_delete=models.CASCADE, related_name="choices"
     )
-    text = models.CharField(max_length=500) # a choice answer
+    text = models.CharField(max_length=500)  # a choice answer
     is_correct = models.BooleanField(default=False)
 
 
