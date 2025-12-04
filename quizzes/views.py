@@ -20,7 +20,7 @@ class QuizListCreateView(generics.ListCreateAPIView):
 class QuizRetrieveUpdateDelete(generics.RetrieveUpdateDestroyAPIView):
     queryset = Quiz.objects.all()
     def get_permissions(self):
-        if self.request.method in['PUT', 'PATCH', 'DELETE']:
+        if self.request.method in ['PUT', 'PATCH', 'DELETE']:
             return [permissions.IsAdminUser()]
         return [permissions.IsAuthenticated()]
     serializer_class = QuizSer
