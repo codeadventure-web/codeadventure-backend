@@ -21,6 +21,7 @@ urlpatterns = [
                 path("", include("courses.urls")),
                 path("", include("quizzes.urls")),
                 path("", include("judge.urls")),
+                path("", include("quizzes.urls"))
             ],
         ),
     ),
