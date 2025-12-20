@@ -36,7 +36,7 @@ class QuestionListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         quiz_id = self.kwargs.get('quiz_id')
         return Question.objects.filter(quiz_id=quiz_id)
-    def create(self, serializer):
+    def perform_create(self, serializer):
         quiz_id = self.kwargs.get('quiz_id')
         quiz = get_object_or_404(Quiz, id=quiz_id)
         serializer.save(quiz=quiz)
@@ -57,7 +57,7 @@ class ChoiceListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         question_id = self.kwargs.get('question_id')
         return Choice.objects.filter(question_id=question_id)
-    def create(self, serializer):
+    def perform_create(self, serializer):
         question_id = self.kwargs.get('question_id')
         question = get_object_or_404(Question, id=question_id)
         serializer.save(question=question)
