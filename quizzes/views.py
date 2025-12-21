@@ -1,9 +1,13 @@
 from rest_framework import views, generics, permissions, response
 from django.shortcuts import get_object_or_404
-from .models import Quiz, QuizAttempt, QuizAnswer, Question, Choice
-from .serializers import QuizSer, AttemptSubmitSer, AttemptResultSer, QuestionSer, ChoiceSer
+from .models import Quiz, QuizAttempt, QuizAnswer, Question
+from .serializers import (
+    QuizSer, 
+    AttemptSubmitSer, 
+    AttemptResultSer, 
+    QuestionSer
+)
 from .grading import grade_attempt
-from rest_framework.exceptions import NotFound
 
 class QuizListCreateView(generics.ListCreateAPIView):
     queryset = Quiz.objects.all()
@@ -12,7 +16,7 @@ class QuizListCreateView(generics.ListCreateAPIView):
 class QuizRetrieveUpdateDelete(generics.RetrieveUpdateDestroyAPIView):
     queryset = Quiz.objects.all()
     serializer_class = QuizSer
-    lookup_field = "id" # Sử dụng quiz_id trực tiếp
+    lookup_field = "id"
 
 class QuestionListCreateView(generics.ListCreateAPIView):
     serializer_class = QuestionSer
