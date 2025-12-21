@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Quiz, Question, Choice, QuizAttempt, QuizAnswer
+from .models import Quiz, QuizAttempt
 
-for m in (Quiz, Question, Choice, QuizAttempt, QuizAnswer):
+for m in (Quiz, QuizAttempt):
     admin.site.register(m)
