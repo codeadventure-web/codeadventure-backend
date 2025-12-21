@@ -192,7 +192,9 @@ class ResetPasswordView(APIView):
         serializer = ResetPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        return Response({"detail": "Password has been reset."}, status=status.HTTP_200_OK)
+        return Response(
+            {"detail": "Password has been reset."}, status=status.HTTP_200_OK
+        )
 
 
 class GoogleLoginView(APIView):

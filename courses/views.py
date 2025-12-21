@@ -1,4 +1,12 @@
-from rest_framework import viewsets, mixins, permissions, decorators, response, filters, serializers
+from rest_framework import (
+    viewsets,
+    mixins,
+    permissions,
+    decorators,
+    response,
+    filters,
+    serializers,
+)
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404
