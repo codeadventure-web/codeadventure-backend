@@ -1,54 +1,37 @@
 from rest_framework import serializers
 from .models import Course, Lesson, Progress, Tag
-from judge.models import Problem
 
 
-# Serializer cho Problem (slug + title)
-class ProblemLiteSer(serializers.ModelSerializer):
-    class Meta:
-        model = Problem
-        fields = ("slug", "title")
-
-
-# Serializer cho Progress nhẹ
 class ProgressLiteSer(serializers.ModelSerializer):
+    """
+    A simple serializer to show just the lesson's progress status and score.
+    """
+
     class Meta:
         model = Progress
         fields = ("status", "score")
 
 
-# Serializer mới: hiển thị quiz đơn giản (chỉ id)
-class QuizLiteSer(serializers.Serializer):
-    id = serializers.UUIDField()
-
-
 class LessonLiteSer(serializers.ModelSerializer):
     progress = serializers.SerializerMethodField()
-    problem = ProblemLiteSer(read_only=True)
-    quizzes = serializers.SerializerMethodField()  # ← Trường mới: danh sách quiz
 
     class Meta:
         model = Lesson
-        fields = ("id", "title", "order", "problem", "content_md", "progress", "quizzes")
+        fields = ("id", "title", "order", "problem", "content_md", "progress")
 
-    def get_progress(self, obj):
+    def get_progress(self, obj: Lesson):
+        """
+        Gets the user's progress for this specific lesson.
+
+        We look for a 'progress_map' that the viewset will provide
+        in the serializer's context.
+        """
         progress_map = self.context.get("progress_map", {})
         progress = progress_map.get(obj.id)
+
         if progress:
             return ProgressLiteSer(progress).data
         return None
-
-    def get_quizzes(self, obj):
-        """
-        Trả về danh sách quiz liên kết với lesson.
-        Hiện tại dùng related_name="quiz" (OneToOne), nên tối đa 1 quiz.
-        Đã thiết kế dạng list để sau này dễ chuyển sang ManyToMany.
-        """
-        quizzes = []
-        # Nếu lesson có quiz (OneToOne)
-        if hasattr(obj, "quiz") and obj.quiz:
-            quizzes.append({"id": str(obj.quiz.id)})
-        return quizzes
 
 
 class CourseListSer(serializers.ModelSerializer):

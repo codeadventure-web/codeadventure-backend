@@ -1,6 +1,22 @@
 from rest_framework.permissions import BasePermission, SAFE_METHODS
 from .enums import UserRole
 
+class IsTeacherOrReadOnly(BasePermission):
+    """
+    GET, HEAD, OPTIONS: cho tất cả
+    POST, PUT, PATCH, DELETE: chỉ user đăng nhập & is_staff
+    """
+
+    def has_permission(self, request, view):
+        if request.method in SAFE_METHODS:
+            return True
+
+        return (
+            request.user
+            and request.user.is_authenticated
+            and request.user.is_staff
+        )
+
 
 class IsAdminOrReadOnly(BasePermission):
     """Allow read-only for everyone, write only for admins."""

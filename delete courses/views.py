@@ -1,13 +1,9 @@
 from rest_framework import viewsets, mixins, permissions, decorators, response, filters
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Prefetch
-from django.shortcuts import get_object_or_404
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
 
-from .models import Course, Lesson, Progress
-from .serializers import CourseListSer, CourseDetailSer, ProgressSer, LessonLiteSer
+from .models import Course, Progress
+from .serializers import CourseListSer, CourseDetailSer, ProgressSer
 from .filters import CourseFilter
 from . import services
 from common.permissions import IsTeacherOrReadOnly
@@ -18,7 +14,11 @@ class CourseViewSet(viewsets.ModelViewSet):
     permission_classes = [IsTeacherOrReadOnly]
     lookup_field = "slug"
 
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
     filterset_class = CourseFilter
     search_fields = ["title", "description"]
     ordering_fields = ["title", "created_at"]
@@ -29,7 +29,7 @@ class CourseViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = super().get_queryset()
         if self.action == "retrieve":
-            qs = qs.prefetch_related("lessons", "lessons__problem")
+            qs = qs.prefetch_related("lessons")
             if self.request.user.is_authenticated:
                 qs = qs.prefetch_related(
                     Prefetch(
@@ -55,7 +55,11 @@ class CourseViewSet(viewsets.ModelViewSet):
         return response.Response(serializer.data)
 
 
-class LessonProgressView(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
+class LessonProgressView(
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
+    viewsets.GenericViewSet,
+):
     queryset = Progress.objects.all()
     serializer_class = ProgressSer
     permission_classes = [permissions.IsAuthenticated]
@@ -63,34 +67,16 @@ class LessonProgressView(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, vie
     def get_queryset(self):
         return Progress.objects.filter(user=self.request.user)
 
-    @decorators.action(detail=False, methods=["get"], url_path=r"by-lesson/(?P<lesson_id>[^/.]+)")
+    @decorators.action(
+        detail=False, methods=["get"], url_path=r"by-lesson/(?P<lesson_id>[^/.]+)"
+    )
     def by_lesson(self, request, lesson_id=None):
         prg, _ = services.get_or_create_progress(user=request.user, lesson_id=lesson_id)
         return response.Response(ProgressSer(prg).data)
 
-    @decorators.action(detail=False, methods=["patch"], url_path=r"complete/(?P<lesson_id>[^/.]+)")
+    @decorators.action(
+        detail=False, methods=["patch"], url_path=r"complete/(?P<lesson_id>[^/.]+)"
+    )
     def complete(self, request, lesson_id=None):
         prg = services.complete_lesson_for_user(user=request.user, lesson_id=lesson_id)
         return response.Response(ProgressSer(prg).data)
-
-
-# ==================== VIEW LẤY CHI TIẾT LESSON THEO ID ====================
-class LessonDetailView(APIView):
-    permission_classes = [AllowAny]  # Có thể đổi thành IsAuthenticated
-
-    def get(self, request, course_slug=None, lesson_id=None):
-        course = get_object_or_404(Course, slug=course_slug)
-        lesson = get_object_or_404(
-            Lesson.objects.select_related("problem"),
-            course=course,
-            id=lesson_id,
-        )
-
-        progress_map = {}
-        if request.user.is_authenticated:
-            progress_obj = Progress.objects.filter(user=request.user, lesson=lesson).first()
-            if progress_obj:
-                progress_map[lesson.id] = progress_obj
-
-        serializer = LessonLiteSer(lesson, context={"progress_map": progress_map})
-        return Response(serializer.data)
