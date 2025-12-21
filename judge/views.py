@@ -20,7 +20,7 @@ from .serializers import (
     SubmitSer,
     SubmissionSer,
 )
-from common.permissions import IsOwner  # IsAdminOrReadOnly không dùng nữa
+from common.permissions import IsOwner  
 from .tasks import run_submission
 from django.db import transaction
 
@@ -36,7 +36,7 @@ class LanguageViewSet(viewsets.ModelViewSet):
     """
     queryset = Language.objects.all().order_by("key")
     serializer_class = LanguageSer
-    permission_classes = [IsAuthenticatedOrReadOnly]  # Đây chính là cái bạn cần!
+    permission_classes = [IsAuthenticatedOrReadOnly]  
 
 
 # ========================
