@@ -1,13 +1,9 @@
 from django.db import models
 
 
-class UserRole(models.TextChoices):
-    """
-    Roles for the accounts.User model.
-    """
-
-    ADMIN = "admin", "Admin"
-    USER = "user", "User"
+class LessonType(models.TextChoices):
+    JUDGE = "judge", "Judge Problem"
+    QUIZ = "quiz", "Quiz"
 
 
 class SubmissionStatus(models.TextChoices):

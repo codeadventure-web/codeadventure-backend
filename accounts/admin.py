@@ -13,11 +13,11 @@ class ProfileInline(admin.StackedInline):
 # Define a new User admin
 class CustomUserAdmin(UserAdmin):
     inlines = (ProfileInline,)
-    list_display = ("username", "email", "first_name", "last_name", "role", "is_staff")
+    list_display = ("username", "email", "first_name", "last_name", "is_staff")
 
     # Add 'role' to the fieldsets
-    fieldsets = UserAdmin.fieldsets + ((None, {"fields": ("role",)}),)
-    add_fieldsets = UserAdmin.add_fieldsets + ((None, {"fields": ("role",)}),)
+    fieldsets = UserAdmin.fieldsets
+    add_fieldsets = UserAdmin.add_fieldsets
 
 
 # Re-register User with CustomUserAdmin

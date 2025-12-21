@@ -1,5 +1,5 @@
 from rest_framework.permissions import BasePermission, SAFE_METHODS
-from .enums import UserRole
+
 
 class IsTeacherOrReadOnly(BasePermission):
     """
@@ -11,11 +11,7 @@ class IsTeacherOrReadOnly(BasePermission):
         if request.method in SAFE_METHODS:
             return True
 
-        return (
-            request.user
-            and request.user.is_authenticated
-            and request.user.is_staff
-        )
+        return request.user and request.user.is_authenticated and request.user.is_staff
 
 
 class IsAdminOrReadOnly(BasePermission):
@@ -27,9 +23,7 @@ class IsAdminOrReadOnly(BasePermission):
 
         # Check for authenticated user and admin role
         return (
-            request.user
-            and request.user.is_authenticated
-            and request.user.role == UserRole.ADMIN
+            request.user and request.user.is_authenticated and request.user.is_superuser
         )
 
 

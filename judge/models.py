@@ -16,9 +16,8 @@ class Language(UUIDModel):
 class Problem(UUIDModel, TimeStamped):
     title = models.CharField(max_length=200)
     slug = models.SlugField(unique=True)
-    statement_md = models.TextField()
-    time_limit_ms = models.IntegerField(default=2000)
-    memory_limit_mb = models.IntegerField(default=256)
+    time_limit_ms = models.IntegerField(default=30000)  # Relaxed for learning
+    memory_limit_mb = models.IntegerField(default=512)  # Relaxed for learning
 
     # NEW: per-problem language restriction
     # If this is empty => all languages are allowed (for old / generic problems)

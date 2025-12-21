@@ -1,36 +1,47 @@
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from .models import Course, Lesson, Progress, Tag
 from judge.models import Problem
+from quizzes.serializers import QuizSer
+from typing import Any, Dict, Optional
 
 
-# Serializer cho Problem (slug + title)
 class ProblemLiteSer(serializers.ModelSerializer):
+    from judge.serializers import LanguageSer
+
+    allowed_languages = LanguageSer(many=True, read_only=True)
+
     class Meta:
         model = Problem
-        fields = ("slug", "title")
+        fields = ("slug", "title", "allowed_languages")
 
 
-# Serializer cho Progress nhẹ
 class ProgressLiteSer(serializers.ModelSerializer):
     class Meta:
         model = Progress
-        fields = ("status", "score")
-
-
-# Serializer mới: hiển thị quiz đơn giản (chỉ id)
-class QuizLiteSer(serializers.Serializer):
-    id = serializers.UUIDField()
+        fields = ("status",)
 
 
 class LessonLiteSer(serializers.ModelSerializer):
     progress = serializers.SerializerMethodField()
     problem = ProblemLiteSer(read_only=True)
-    quizzes = serializers.SerializerMethodField()  # ← Trường mới: danh sách quiz
+    quiz = serializers.SerializerMethodField()
 
     class Meta:
         model = Lesson
-        fields = ("id", "title", "order", "problem", "content_md", "progress", "quizzes")
+        fields = (
+            "id",
+            "title",
+            "slug",
+            "type",
+            "order",
+            "problem",
+            "quiz",
+            "content_md",
+            "progress",
+        )
 
+    @extend_schema_field(ProgressLiteSer)
     def get_progress(self, obj):
         progress_map = self.context.get("progress_map", {})
         progress = progress_map.get(obj.id)
@@ -38,17 +49,11 @@ class LessonLiteSer(serializers.ModelSerializer):
             return ProgressLiteSer(progress).data
         return None
 
-    def get_quizzes(self, obj):
-        """
-        Trả về danh sách quiz liên kết với lesson.
-        Hiện tại dùng related_name="quiz" (OneToOne), nên tối đa 1 quiz.
-        Đã thiết kế dạng list để sau này dễ chuyển sang ManyToMany.
-        """
-        quizzes = []
-        # Nếu lesson có quiz (OneToOne)
+    @extend_schema_field(QuizSer)
+    def get_quiz(self, obj) -> Optional[Dict[str, Any]]:
         if hasattr(obj, "quiz") and obj.quiz:
-            quizzes.append({"id": str(obj.quiz.id)})
-        return quizzes
+            return QuizSer(obj.quiz).data
+        return None
 
 
 class CourseListSer(serializers.ModelSerializer):
@@ -89,4 +94,4 @@ class CourseDetailSer(serializers.ModelSerializer):
 class ProgressSer(serializers.ModelSerializer):
     class Meta:
         model = Progress
-        fields = ("id", "lesson", "status", "score")
+        fields = ("id", "lesson", "status")

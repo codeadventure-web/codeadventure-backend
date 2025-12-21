@@ -11,7 +11,7 @@ def test_health_ok(monkeypatch, api_client):
 
     monkeypatch.setattr(accounts_views.redis, "from_url", lambda *a, **k: FakeRedis())
 
-    resp = api_client.get("/auth/health/")
+    resp = api_client.get("/api/v1/health/")
     assert resp.status_code == 200
     assert resp.data["status"] in ("ok", "degraded")
     # at least both keys present

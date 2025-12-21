@@ -12,7 +12,6 @@ class Command(BaseCommand):
             slug="sum-two",
             defaults={
                 "title": "Sum Two Numbers",
-                "statement_md": "Read two ints a,b and print a+b.",
                 "time_limit_ms": 2000,
                 "memory_limit_mb": 256,
             },

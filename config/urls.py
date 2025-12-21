@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.http import HttpResponse
 from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+from accounts.views import LoginView, RegisterView
 
 
 def home(request):
@@ -17,13 +18,11 @@ urlpatterns = [
         "api/v1/",
         include(
             [
-                path("auth/", include("accounts.urls")),
+                path("signup/", RegisterView.as_view(), name="signup"),
+                path("login/", LoginView.as_view(), name="login"),
+                path("", include("accounts.urls")),
                 path("", include("courses.urls")),
-                path("", include("quizzes.urls")),
-                path("", include("judge.urls")),
             ],
         ),
     ),
-    path("api/", include("courses.urls")),
-    path("auth/", include("accounts.urls")),
 ]

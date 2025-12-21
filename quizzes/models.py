@@ -1,17 +1,18 @@
 from django.db import models
 from common.models import UUIDModel, TimeStamped
 
+
 class Quiz(UUIDModel, TimeStamped):
-    lesson = models.OneToOneField(
-        "courses.Lesson", on_delete=models.CASCADE, related_name="quiz"
-    )
+    title = models.CharField(max_length=200, default="Untitled Quiz")
+
+    def __str__(self):
+        return self.title
+
 
 class Question(UUIDModel, TimeStamped):
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name="questions")
     text = models.TextField()
-    type = models.CharField(
-        max_length=20, choices=[("single", "Single"), ("multi", "Multi")]
-    )
+
 
 class Choice(UUIDModel, TimeStamped):
     question = models.ForeignKey(
@@ -20,11 +21,13 @@ class Choice(UUIDModel, TimeStamped):
     text = models.CharField(max_length=500)
     is_correct = models.BooleanField(default=False)
 
+
 class QuizAttempt(UUIDModel, TimeStamped):
     user = models.ForeignKey("accounts.User", on_delete=models.CASCADE)
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE)
-    score = models.FloatField(default=0.0)
+    is_passed = models.BooleanField(default=False)
     finished = models.BooleanField(default=False)
+
 
 class QuizAnswer(UUIDModel, TimeStamped):
     attempt = models.ForeignKey(

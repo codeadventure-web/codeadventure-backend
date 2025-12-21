@@ -15,15 +15,15 @@ CodeAdventure is a web platform supporting online programming training. The main
 ### Group: Admin
 - ✅ **Admin Dashboard**
   - **Description:** View user's statistics, lessons, logs and manage users (CRUD user).
-  - **How to access:** /admin (role=admin)
+  - **How to access:** /admin (superuser)
 - ✅ **Course Management (CRUD Course)**
   - **Description:** Create, Read, Update, and Delete lessons.
   - **Example:** `GET /api/v1/courses/` returns a paginated list.
-  - **Note:** Create/Update/Delete permissions are restricted to the `admin` role.  
+  - **Note:** Create/Update/Delete permissions are restricted to superusers.  
 - ✅ **Quiz Management (CRUD Quiz)**
   - **Description:** Create, Read, Update, and Delete Quiz.
   - **Example:** `GET /api/v1/quizzes/` returns a paginated list.
-  - **Note:** Create/Update/Delete permissions are restricted to the `admin` role. 
+  - **Note:** Create/Update/Delete permissions are restricted to superusers. 
 ## 💻 Tech Stacks
 * **Frontend:** ReactJS, HTML, CSS
 * **Backend:** Django

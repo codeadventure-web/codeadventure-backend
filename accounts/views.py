@@ -9,7 +9,7 @@ from .serializers import (
     GoogleLoginSerializer,
     GithubLoginSerializer,
 )
-from rest_framework import generics, status, throttling
+from rest_framework import generics, status, throttling, serializers
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
@@ -18,21 +18,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-
-# Swagger (safe fallback if not installed)
-try:
-    from drf_spectacular.utils import extend_schema, OpenApiExample
-except Exception:
-
-    def extend_schema(*args, **kwargs):
-        def _w(f):
-            return f
-
-        return _w
-
-    class OpenApiExample:
-        def __init__(self, *a, **k):
-            pass
+from drf_spectacular.utils import extend_schema, OpenApiExample, inline_serializer
+from drf_spectacular.types import OpenApiTypes
 
 
 # Throttle for login attempts
@@ -81,6 +68,7 @@ class LoginView(TokenObtainPairView):
     serializer_class = LoginSerializer
 
 
+@extend_schema(tags=["Auth"], responses={200: OpenApiTypes.OBJECT})
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def health(request):
@@ -111,10 +99,26 @@ class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = [AllowAny]
 
+    @extend_schema(tags=["Auth"], summary="Register a new user")
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
+
 
 class MeView(generics.RetrieveUpdateAPIView):
     serializer_class = UserMeSerializer
     permission_classes = [IsAuthenticated]
+
+    @extend_schema(tags=["Auth"], summary="Get or update current user info")
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+    @extend_schema(tags=["Auth"])
+    def put(self, request, *args, **kwargs):
+        return super().put(request, *args, **kwargs)
+
+    @extend_schema(tags=["Auth"])
+    def patch(self, request, *args, **kwargs):
+        return super().patch(request, *args, **kwargs)
 
     def get_object(self):
         return self.request.user
@@ -130,6 +134,14 @@ class SafeLogoutView(APIView):
 
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        tags=["Auth"],
+        request=inline_serializer(
+            name="LogoutRequest", fields={"refresh": serializers.CharField()}
+        ),
+        responses={205: None},
+        summary="Logout (blacklist refresh token)",
+    )
     def post(self, request):
         refresh = request.data.get("refresh")
         if not refresh:
@@ -148,6 +160,12 @@ class SafeLogoutView(APIView):
 class ForgotPasswordView(APIView):
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        tags=["Auth"],
+        request=ForgotPasswordSerializer,
+        responses={200: OpenApiTypes.OBJECT},
+        summary="Request password reset email",
+    )
     def post(self, request):
         serializer = ForgotPasswordSerializer(
             data=request.data, context={"request": request}
@@ -164,18 +182,28 @@ class ForgotPasswordView(APIView):
 class ResetPasswordView(APIView):
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        tags=["Auth"],
+        request=ResetPasswordSerializer,
+        responses={200: OpenApiTypes.OBJECT},
+        summary="Reset password using token",
+    )
     def post(self, request):
         serializer = ResetPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        return Response(
-            {"detail": "Password has been reset."}, status=status.HTTP_200_OK
-        )
+        return Response({"detail": "Password has been reset."}, status=status.HTTP_200_OK)
 
 
 class GoogleLoginView(APIView):
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        tags=["Auth"],
+        request=GoogleLoginSerializer,
+        responses={200: OpenApiTypes.OBJECT},
+        summary="Login with Google",
+    )
     def post(self, request):
         serializer = GoogleLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -199,6 +227,12 @@ class GoogleLoginView(APIView):
 class GithubLoginView(APIView):
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        tags=["Auth"],
+        request=GithubLoginSerializer,
+        responses={200: OpenApiTypes.OBJECT},
+        summary="Login with GitHub",
+    )
     def post(self, request):
         serializer = GithubLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

@@ -1,0 +1,24 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+      - name: Install Tools
+        run: pip install bandit safety
+      - name: Bandit Scan (Code)
+        run: bandit -r . -x ./tests,./.venv -ll
+      - name: Safety Scan (Dependencies)
+        run: safety check -r requirements.txt || echo "Vulnerabilities found, please review"

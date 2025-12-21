@@ -1,0 +1,22 @@
+name: Docker Build Check
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  build-images:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Web Image
+        run: docker build -t codeadventure-web -f docker/web.Dockerfile .
+      - name: Build Worker Image
+        run: docker build -t codeadventure-worker -f docker/worker.Dockerfile .
+      - name: Build Python Sandbox
+        run: docker build -t codeadventure-python -f docker/sandbox-python.Dockerfile docker/
+      - name: Build C++ Sandbox
+        run: docker build -t codeadventure-cpp -f docker/sandbox-cpp.Dockerfile docker/

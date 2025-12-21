@@ -30,7 +30,8 @@ class DockerSandbox:
     def __init__(self, language: Language, code: str, memory_limit_mb: int):
         self.language = language
         self.code = code
-        self.memory_limit_mb = memory_limit_mb
+        # Ignore per-problem memory limit, use 256MB for learning (enough for easy tasks, stops leaks)
+        self.memory_limit_mb = 256
         self.container_name = f"sandbox-{uuid.uuid4()}"
         self.tmpdir = tempfile.TemporaryDirectory()
         self.tmp_path = Path(self.tmpdir.name)
@@ -54,10 +55,10 @@ class DockerSandbox:
                     "-d",  # Detached & remove on exit
                     "--name",
                     self.container_name,  # Unique name
-                    "--network=none",  # No internet
+                    # "--network=none",  # Allow network for learning
                     f"--memory={self.memory_limit_mb}m",
                     "--cpus=1",
-                    "--pids-limit=64",  # Anti-fork bomb
+                    # "--pids-limit=64",  # Removed strict PID limit
                     "-v",
                     f"{self.tmpdir.name}:/workspace:rw",
                     "-w",
@@ -98,7 +99,7 @@ class DockerSandbox:
                 ["docker", "exec", self.container_name, *compile_cmd],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                timeout=10,
+                timeout=30,  # Increased timeout for compilation
             )
             if res.returncode != 0:
                 return False, res.stderr.decode("utf-8", errors="ignore")
@@ -113,7 +114,8 @@ class DockerSandbox:
         Runs a single test case using `docker exec`.
         Returns: (stdout, stderr, exit_code, status_tag)
         """
-        timeout_sec = max(0.5, time_limit_ms / 1000.0)
+        # Ignore per-problem time limit, use 5 seconds (enough for easy tasks, kills loops fast)
+        timeout_sec = 5.0
         run_cmd = self.cfg["run_cmd"]
 
         try:

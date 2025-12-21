@@ -1,17 +1,22 @@
-from rest_framework.routers import SimpleRouter
-from django.urls import path, include
-from .views import CourseViewSet, LessonProgressView, LessonDetailView
+from django.urls import path
+from .views import CourseViewSet, LessonProgressView, LessonView
 
-router = SimpleRouter()
-router.register(r"courses", CourseViewSet, basename="course")
-router.register(r"lessons/progress", LessonProgressView, basename="progress")
+course_list = CourseViewSet.as_view({"get": "list", "post": "create"})
+course_detail = CourseViewSet.as_view(
+    {"get": "retrieve", "put": "update", "patch": "partial_update", "delete": "destroy"}
+)
 
 urlpatterns = [
-    path("", include(router.urls)),
-    # Chi tiết lesson theo lesson_id trong course
+    path("courses/", course_list, name="course-list"),
     path(
-        "courses/<str:course_slug>/lessons/<uuid:lesson_id>/",
-        LessonDetailView.as_view(),
+        "lessons/progress/",
+        LessonProgressView.as_view({"get": "list"}),
+        name="progress-list",
+    ),
+    path("<slug:slug>/", course_detail, name="course-detail"),
+    path(
+        "<slug:course_slug>/<slug:lesson_slug>/",
+        LessonView.as_view(),
         name="lesson-detail",
     ),
 ]

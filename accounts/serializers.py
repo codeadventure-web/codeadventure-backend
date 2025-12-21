@@ -33,7 +33,7 @@ class UserMeSerializer(serializers.ModelSerializer):
             "id",
             "username",
             "email",
-            "role",
+            "is_superuser",
             "first_name",
             "last_name",
             "profile",

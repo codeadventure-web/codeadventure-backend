@@ -7,7 +7,7 @@ User = get_user_model()
 @pytest.mark.django_db
 def test_register(api_client):
     resp = api_client.post(
-        "/auth/register/",
+        "/api/v1/signup/",
         {
             "username": "newuser",
             "email": "new@example.com",
@@ -22,7 +22,7 @@ def test_register(api_client):
 @pytest.mark.django_db
 def test_login(api_client, user):
     resp = api_client.post(
-        "/auth/login/",
+        "/api/v1/login/",
         {
             "username": "dao",
             "password": "pass1234",
@@ -37,7 +37,7 @@ def test_login(api_client, user):
 
 @pytest.mark.django_db
 def test_me_requires_auth(api_client):
-    resp = api_client.get("/auth/me/")
+    resp = api_client.get("/api/v1/me/")
     assert resp.status_code == 401  # IsAuthenticated
 
 
@@ -45,7 +45,7 @@ def test_me_requires_auth(api_client):
 def test_me_get_and_patch(api_client, user):
     # login first to get token
     login = api_client.post(
-        "/auth/login/",
+        "/api/v1/login/",
         {
             "username": "dao",
             "password": "pass1234",
@@ -56,13 +56,13 @@ def test_me_get_and_patch(api_client, user):
     api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
 
     # GET
-    resp = api_client.get("/auth/me/")
+    resp = api_client.get("/api/v1/me/")
     assert resp.status_code == 200
     assert resp.data["username"] == "dao"
 
     # PATCH with profile
     resp = api_client.patch(
-        "/auth/me/",
+        "/api/v1/me/",
         {
             "first_name": "Dao",
             "profile": {
@@ -80,6 +80,6 @@ def test_me_get_and_patch(api_client, user):
 # test safe logout
 @pytest.mark.django_db
 def test_safe_logout_accepts_invalid_token(api_client):
-    resp = api_client.post("/auth/logout/", {"refresh": "totally-invalid"})
+    resp = api_client.post("/api/v1/logout/", {"refresh": "totally-invalid"})
     # should still succeed with 205
     assert resp.status_code == 205

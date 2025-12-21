@@ -1,34 +1,11 @@
 from rest_framework import serializers
-from .models import Language, Problem, Submission
+from .models import Language
 
 
 class LanguageSer(serializers.ModelSerializer):
     class Meta:
         model = Language
         fields = ("id", "key", "version")
-
-
-class ProblemListSer(serializers.ModelSerializer):
-    class Meta:
-        model = Problem
-        fields = ("id", "slug", "title")
-
-
-class ProblemDetailSer(serializers.ModelSerializer):
-    # NEW: send allowed languages (full objects) to the frontend
-    allowed_languages = LanguageSer(many=True, read_only=True)
-
-    class Meta:
-        model = Problem
-        fields = (
-            "id",
-            "slug",
-            "title",
-            "statement_md",
-            "time_limit_ms",
-            "memory_limit_mb",
-            "allowed_languages",
-        )
 
 
 class SubmitSer(serializers.Serializer):
@@ -39,13 +16,3 @@ class SubmitSer(serializers.Serializer):
         if not value.strip():
             raise serializers.ValidationError("Code cannot be blank.")
         return value
-
-
-class SubmissionSer(serializers.ModelSerializer):
-    problem = ProblemListSer(read_only=True)
-    language = LanguageSer(read_only=True)
-
-    class Meta:
-        model = Submission
-        fields = ("id", "status", "summary", "problem", "language", "created_at")
-        read_only_fields = fields

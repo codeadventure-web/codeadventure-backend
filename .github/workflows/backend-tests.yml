@@ -1,0 +1,65 @@
+name: Backend Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  migrations:
+    name: Check Migrations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Check for missing migrations
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.test
+          DJANGO_SECRET_KEY: ci-secret
+        run: python manage.py makemigrations --check --dry-run
+
+  pytest:
+    name: Run Pytest
+    needs: migrations
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: codeadventure
+          POSTGRES_PASSWORD: codeadventure
+          POSTGRES_DB: codeadventure_test
+        ports: ["5432:5432"]
+        options: --health-cmd="pg_isready -U codeadventure -d codeadventure_test" --health-interval=10s --health-timeout=5s --health-retries=5
+      redis:
+        image: redis:7
+        ports: ["6379:6379"]
+    env:
+      DJANGO_SETTINGS_MODULE: config.settings.test
+      DJANGO_SECRET_KEY: ci-secret
+      DATABASE_URL: postgres://codeadventure:codeadventure@localhost:5432/codeadventure_test
+      REDIS_URL: redis://localhost:6379/0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-django pytest-cov pytest-mock
+      - name: Run migrations
+        run: python manage.py migrate --noinput
+      - name: Run tests
+        run: pytest --cov=. --cov-report=xml
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          fail_ci_if_error: false

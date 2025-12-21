@@ -1,21 +1,15 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from common.models import UUIDModel
-from common.enums import UserRole
 
 
 class User(AbstractUser):
     """
     Custom user model for CodeAdventure.
 
-    We use the built-in fields from AbstractUser (username, email, etc.)
-    and add a custom 'role' field.
+    We use the built-in fields from AbstractUser (username, email, etc.).
+    The 'is_superuser' field will be used to distinguish admins.
     """
-
-    # Use the enum for choices and set a default
-    role = models.CharField(
-        max_length=10, choices=UserRole.choices, default=UserRole.USER
-    )
 
     def __str__(self):
         return self.username

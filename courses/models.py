@@ -1,7 +1,8 @@
 from django.db import models
 from django.utils.text import slugify
+from django.core.exceptions import ValidationError
 from common.models import UUIDModel, TimeStamped
-from common.enums import ProgressStatus
+from common.enums import ProgressStatus, LessonType
 
 
 class Tag(UUIDModel, TimeStamped):
@@ -36,14 +37,54 @@ class Course(UUIDModel, TimeStamped):
 class Lesson(UUIDModel, TimeStamped):
     class Meta:
         ordering = ["order", "created_at"]
+        unique_together = ("course", "slug")
 
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="lessons")
     title = models.CharField(max_length=200)
+    slug = models.SlugField(max_length=200, blank=True)
     order = models.PositiveIntegerField(default=0)
     content_md = models.TextField(blank=True)
+
+    # New fields for lesson type
+    type = models.CharField(
+        max_length=10, choices=LessonType.choices, default=LessonType.JUDGE
+    )
     problem = models.ForeignKey(
         "judge.Problem", null=True, blank=True, on_delete=models.SET_NULL
     )
+    quiz = models.ForeignKey(
+        "quizzes.Quiz",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="lesson_for_quiz",
+    )
+
+    def get_next_lesson(self):
+        return (
+            Lesson.objects.filter(course=self.course, order__gt=self.order)
+            .order_by("order")
+            .first()
+        )
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            # Generate slug from order, e.g., "01", 10 -> "10"
+            self.slug = f"{self.order:02d}"
+        super().save(*args, **kwargs)
+
+    def clean(self):
+        # Ensure that only one of problem or quiz is set, matching the type
+        if self.type == LessonType.JUDGE:
+            if not self.problem:
+                raise ValidationError("Judge lesson must have a problem.")
+            if self.quiz:
+                raise ValidationError("Judge lesson cannot have a quiz.")
+        elif self.type == LessonType.QUIZ:
+            if not self.quiz:
+                raise ValidationError("Quiz lesson must have a quiz.")
+            if self.problem:
+                raise ValidationError("Quiz lesson cannot have a problem.")
 
 
 class Progress(UUIDModel, TimeStamped):
@@ -54,7 +95,6 @@ class Progress(UUIDModel, TimeStamped):
         choices=ProgressStatus.choices,
         default=ProgressStatus.INCOMPLETE,
     )
-    score = models.FloatField(null=True, blank=True)
 
     class Meta:
         unique_together = ("user", "lesson")
