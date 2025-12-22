@@ -46,18 +46,24 @@ class LessonSerializer(serializers.ModelSerializer):
         # Determine the final type, problem, and quiz after this update
         instance = self.instance
         lesson_type = data.get("type", instance.type if instance else LessonType.JUDGE)
-        
+
         # If type is JUDGE, quiz must be cleared. If type is QUIZ, problem must be cleared.
         if lesson_type == LessonType.JUDGE:
             if data.get("quiz") or (instance and instance.quiz and "quiz" not in data):
                 data["quiz"] = None
             if not data.get("problem") and not (instance and instance.problem):
-                raise serializers.ValidationError({"problem": "Judge lesson must have a problem."})
+                raise serializers.ValidationError(
+                    {"problem": "Judge lesson must have a problem."}
+                )
         elif lesson_type == LessonType.QUIZ:
-            if data.get("problem") or (instance and instance.problem and "problem" not in data):
+            if data.get("problem") or (
+                instance and instance.problem and "problem" not in data
+            ):
                 data["problem"] = None
             if not data.get("quiz") and not (instance and instance.quiz):
-                raise serializers.ValidationError({"quiz": "Quiz lesson must have a quiz."})
+                raise serializers.ValidationError(
+                    {"quiz": "Quiz lesson must have a quiz."}
+                )
 
         return data
 

@@ -130,6 +130,7 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     @extend_schema(
         tags=["Lessons"],
+        operation_id="v1_lesson_create",
         summary="Create a new lesson in this course",
         description="Creates a new lesson attached to the course specified by the slug. Restricted to teachers/staff.",
         request=LessonSerializer,
@@ -182,6 +183,8 @@ class LessonProgressView(
 
 
 class LessonView(APIView):
+    serializer_class = LessonSerializer
+
     def get_permissions(self):
         if self.request.method in ["PATCH", "PUT", "DELETE"]:
             return [IsTeacherOrReadOnly()]
@@ -217,6 +220,7 @@ class LessonView(APIView):
 
     @extend_schema(
         tags=["Lessons"],
+        operation_id="v1_lesson_partial_update",
         summary="Update lesson details",
         description="Updates an existing lesson using its course and lesson slugs. Restricted to teachers/staff.",
         request=LessonSerializer,
@@ -232,6 +236,7 @@ class LessonView(APIView):
 
     @extend_schema(
         tags=["Lessons"],
+        operation_id="v1_lesson_delete",
         summary="Delete a lesson",
         description="Deletes an existing lesson using its course and lesson slugs. Restricted to teachers/staff.",
     )
