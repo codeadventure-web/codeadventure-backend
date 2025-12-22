@@ -1,6 +1,6 @@
 import pytest
 from common.enums import ProgressStatus
-from courses.models import Progress, Lesson
+from courses.models import Progress
 
 
 @pytest.mark.django_db
@@ -36,7 +36,7 @@ def test_my_courses_progress(
     data = resp.data[0]
     assert data["slug"] == course_python.slug
     assert data["completion_percentage"] == 0
-    assert data["is_completed"] == False
+    assert not data["is_completed"]
 
     # Alice completes lesson 1 (1/2 = 50%)
     p = Progress.objects.get(user=user_alice, lesson=lesson_decorators)
@@ -45,7 +45,7 @@ def test_my_courses_progress(
 
     resp = api_client.get(url)
     assert resp.data[0]["completion_percentage"] == 50
-    assert resp.data[0]["is_completed"] == False
+    assert not resp.data[0]["is_completed"]
 
     # Alice completes lesson 2 (2/2 = 100%)
     Progress.objects.create(
@@ -54,4 +54,4 @@ def test_my_courses_progress(
 
     resp = api_client.get(url)
     assert resp.data[0]["completion_percentage"] == 100
-    assert resp.data[0]["is_completed"] == True
+    assert resp.data[0]["is_completed"]

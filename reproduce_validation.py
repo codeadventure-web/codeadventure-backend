@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.dev")
 django.setup()
 
-from courses.models import Course, Lesson
+from courses.models import Course, Lesson  # noqa: E402
 
 
 def run():
