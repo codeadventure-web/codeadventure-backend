@@ -8,6 +8,7 @@ from .serializers import (
     ResetPasswordSerializer,
     GoogleLoginSerializer,
     GithubLoginSerializer,
+    LoginResponseSerializer,
 )
 from rest_framework import generics, status, throttling, serializers
 from rest_framework.views import APIView
@@ -52,6 +53,9 @@ class LoginSerializer(TokenObtainPairSerializer):
 @extend_schema(
     tags=["Auth"],
     summary="Login (JWT)",
+    description="Authenticates a user with username and password. Returns a pair of JWT tokens (access and refresh) along with basic user information. The access token should be used in the Authorization header as 'Bearer <token>'.",
+    request=LoginSerializer,
+    responses={200: LoginResponseSerializer},
     examples=[
         OpenApiExample(
             "Login example",
@@ -68,7 +72,12 @@ class LoginView(TokenObtainPairView):
     serializer_class = LoginSerializer
 
 
-@extend_schema(tags=["Auth"], responses={200: OpenApiTypes.OBJECT})
+@extend_schema(
+    tags=["Auth"],
+    responses={200: OpenApiTypes.OBJECT},
+    summary="Health check",
+    description="Check the health status of the backend, including Database and Redis connectivity. Returns 200 OK even if degraded, but 'status' field will reflect the health.",
+)
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def health(request):
@@ -99,7 +108,12 @@ class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = [AllowAny]
 
-    @extend_schema(tags=["Auth"], summary="Register a new user")
+    @extend_schema(
+        tags=["Auth"],
+        summary="Register a new user",
+        description="Creates a new user account with a hashed password. Returns the username and email upon successful registration.",
+        responses={201: RegisterSerializer},
+    )
     def post(self, request, *args, **kwargs):
         return super().post(request, *args, **kwargs)
 
@@ -108,15 +122,27 @@ class MeView(generics.RetrieveUpdateAPIView):
     serializer_class = UserMeSerializer
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(tags=["Auth"], summary="Get or update current user info")
+    @extend_schema(
+        tags=["Auth"],
+        summary="Get current user info",
+        description="Retrieves the profile and account details of the currently authenticated user.",
+    )
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
 
-    @extend_schema(tags=["Auth"])
+    @extend_schema(
+        tags=["Auth"],
+        summary="Update current user info",
+        description="Updates the profile and account details of the currently authenticated user (Full update).",
+    )
     def put(self, request, *args, **kwargs):
         return super().put(request, *args, **kwargs)
 
-    @extend_schema(tags=["Auth"])
+    @extend_schema(
+        tags=["Auth"],
+        summary="Partially update current user info",
+        description="Updates specific fields of the currently authenticated user's profile or account.",
+    )
     def patch(self, request, *args, **kwargs):
         return super().patch(request, *args, **kwargs)
 
@@ -141,6 +167,7 @@ class SafeLogoutView(APIView):
         ),
         responses={205: None},
         summary="Logout (blacklist refresh token)",
+        description="Blacklists the provided refresh token to prevent further access. This endpoint is idempotent and returns 205 Reset Content even if the token is already invalid.",
     )
     def post(self, request):
         refresh = request.data.get("refresh")
@@ -165,6 +192,7 @@ class ForgotPasswordView(APIView):
         request=ForgotPasswordSerializer,
         responses={200: OpenApiTypes.OBJECT},
         summary="Request password reset email",
+        description="Sends a password reset email to the user if the email address exists in the system. Always returns a successful response to prevent user enumeration.",
     )
     def post(self, request):
         serializer = ForgotPasswordSerializer(
@@ -187,6 +215,7 @@ class ResetPasswordView(APIView):
         request=ResetPasswordSerializer,
         responses={200: OpenApiTypes.OBJECT},
         summary="Reset password using token",
+        description="Resets the user's password using the UID and token sent via email.",
     )
     def post(self, request):
         serializer = ResetPasswordSerializer(data=request.data)
@@ -203,8 +232,9 @@ class GoogleLoginView(APIView):
     @extend_schema(
         tags=["Auth"],
         request=GoogleLoginSerializer,
-        responses={200: OpenApiTypes.OBJECT},
+        responses={200: LoginResponseSerializer},
         summary="Login with Google",
+        description="Exchange a Google ID Token for a JWT pair. If the user doesn't exist, a new account will be created automatically.",
     )
     def post(self, request):
         serializer = GoogleLoginSerializer(data=request.data)
@@ -232,8 +262,9 @@ class GithubLoginView(APIView):
     @extend_schema(
         tags=["Auth"],
         request=GithubLoginSerializer,
-        responses={200: OpenApiTypes.OBJECT},
+        responses={200: LoginResponseSerializer},
         summary="Login with GitHub",
+        description="Exchange a GitHub Access Token for a JWT pair. If the user doesn't exist, a new account will be created automatically.",
     )
     def post(self, request):
         serializer = GithubLoginSerializer(data=request.data)

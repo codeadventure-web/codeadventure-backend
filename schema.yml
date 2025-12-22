@@ -154,6 +154,8 @@ paths:
   /api/v1/{course_slug}/{lesson_slug}/:
     get:
       operationId: v1_lesson_detail
+      description: Returns the full content of a lesson, including the associated
+        problem or quiz. Includes user-specific progress if authenticated.
       summary: Retrieve lesson details
       parameters:
       - in: path
@@ -167,7 +169,7 @@ paths:
           type: string
         required: true
       tags:
-      - v1
+      - Courses
       security:
       - jwtAuth: []
       - bearerAuth: []
@@ -181,6 +183,9 @@ paths:
           description: ''
     post:
       operationId: v1_lesson_submit
+      description: Processes a submission for a lesson. For JUDGE lessons, it evaluates
+        code in a sandbox. For QUIZ lessons, it grades the provided answers. If the
+        submission passes, the lesson is marked as completed.
       summary: Submit lesson solution (code or quiz)
       parameters:
       - in: path
@@ -194,7 +199,7 @@ paths:
           type: string
         required: true
       tags:
-      - v1
+      - Courses
       requestBody:
         content:
           application/json:
@@ -218,7 +223,11 @@ paths:
           description: ''
   /api/v1/{slug}/:
     get:
-      operationId: v1_course_retrieve
+      operationId: v1_retrieve
+      description: Returns detailed information about a single course, including its
+        list of lessons. If the user is authenticated, it also includes their progress
+        for each lesson.
+      summary: Retrieve course details (with lessons)
       parameters:
       - in: path
         name: slug
@@ -226,7 +235,7 @@ paths:
           type: string
         required: true
       tags:
-      - v1
+      - Courses
       security:
       - jwtAuth: []
       - bearerAuth: []
@@ -238,7 +247,9 @@ paths:
                 $ref: '#/components/schemas/CourseDetailSer'
           description: ''
     put:
-      operationId: v1_course_update
+      operationId: v1_update
+      description: Updates an existing course. Restricted to teachers/staff.
+      summary: Update a course
       parameters:
       - in: path
         name: slug
@@ -246,7 +257,7 @@ paths:
           type: string
         required: true
       tags:
-      - v1
+      - Courses
       requestBody:
         content:
           application/json:
@@ -270,7 +281,9 @@ paths:
                 $ref: '#/components/schemas/CourseListSer'
           description: ''
     patch:
-      operationId: v1_course_partial_update
+      operationId: v1_partial_update
+      description: Partially updates an existing course. Restricted to teachers/staff.
+      summary: Partially update a course
       parameters:
       - in: path
         name: slug
@@ -278,7 +291,7 @@ paths:
           type: string
         required: true
       tags:
-      - v1
+      - Courses
       requestBody:
         content:
           application/json:
@@ -301,7 +314,9 @@ paths:
                 $ref: '#/components/schemas/CourseListSer'
           description: ''
     delete:
-      operationId: v1_course_destroy
+      operationId: v1_destroy
+      description: Deletes an existing course. Restricted to teachers/staff.
+      summary: Delete a course
       parameters:
       - in: path
         name: slug
@@ -309,7 +324,7 @@ paths:
           type: string
         required: true
       tags:
-      - v1
+      - Courses
       security:
       - jwtAuth: []
       - bearerAuth: []
@@ -318,7 +333,10 @@ paths:
           description: No response body
   /api/v1/courses/:
     get:
-      operationId: v1_course_list
+      operationId: v1_courses_list
+      description: Returns a paginated list of all available courses. Supports filtering
+        by publication status and searching by title or description.
+      summary: List all courses
       parameters:
       - in: query
         name: is_published
@@ -358,7 +376,7 @@ paths:
         explode: false
         style: form
       tags:
-      - v1
+      - Courses
       security:
       - jwtAuth: []
       - bearerAuth: []
@@ -370,9 +388,11 @@ paths:
                 $ref: '#/components/schemas/PaginatedCourseListSerList'
           description: ''
     post:
-      operationId: v1_course_create
+      operationId: v1_courses_create
+      description: Creates a new course. Restricted to users with teaching/staff permissions.
+      summary: Create a new course
       tags:
-      - v1
+      - Courses
       requestBody:
         content:
           application/json:
@@ -398,6 +418,10 @@ paths:
   /api/v1/health/:
     get:
       operationId: v1_health_retrieve
+      description: Check the health status of the backend, including Database and
+        Redis connectivity. Returns 200 OK even if degraded, but 'status' field will
+        reflect the health.
+      summary: Health check
       tags:
       - Auth
       security:
@@ -455,7 +479,9 @@ paths:
   /api/v1/login/:
     post:
       operationId: v1_login_create
-      description: POST username/password → access, refresh, user info
+      description: Authenticates a user with username and password. Returns a pair
+        of JWT tokens (access and refresh) along with basic user information. The
+        access token should be used in the Authorization header as 'Bearer <token>'.
       summary: Login (JWT)
       tags:
       - Auth
@@ -482,15 +508,17 @@ paths:
       - {}
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+          description: ''
   /api/v1/logout/:
     post:
       operationId: v1_logout_create
-      description: |-
-        POST {"refresh": "<refresh_token>"}
-        - Blacklists the refresh token if valid
-        - Returns 205 even if token is already blacklisted/invalid (idempotent logout)
-        - No Authorization header required
+      description: Blacklists the provided refresh token to prevent further access.
+        This endpoint is idempotent and returns 205 Reset Content even if the token
+        is already invalid.
       summary: Logout (blacklist refresh token)
       tags:
       - Auth
@@ -516,7 +544,9 @@ paths:
   /api/v1/me/:
     get:
       operationId: v1_me_retrieve
-      summary: Get or update current user info
+      description: Retrieves the profile and account details of the currently authenticated
+        user.
+      summary: Get current user info
       tags:
       - Auth
       security:
@@ -531,6 +561,9 @@ paths:
           description: ''
     put:
       operationId: v1_me_update
+      description: Updates the profile and account details of the currently authenticated
+        user (Full update).
+      summary: Update current user info
       tags:
       - Auth
       requestBody:
@@ -557,6 +590,9 @@ paths:
           description: ''
     patch:
       operationId: v1_me_partial_update
+      description: Updates specific fields of the currently authenticated user's profile
+        or account.
+      summary: Partially update current user info
       tags:
       - Auth
       requestBody:
@@ -583,6 +619,8 @@ paths:
   /api/v1/password/forgot/:
     post:
       operationId: v1_password_forgot_create
+      description: Sends a password reset email to the user if the email address exists
+        in the system. Always returns a successful response to prevent user enumeration.
       summary: Request password reset email
       tags:
       - Auth
@@ -613,6 +651,7 @@ paths:
   /api/v1/password/reset/:
     post:
       operationId: v1_password_reset_create
+      description: Resets the user's password using the UID and token sent via email.
       summary: Reset password using token
       tags:
       - Auth
@@ -672,6 +711,8 @@ paths:
   /api/v1/signup/:
     post:
       operationId: v1_signup_create
+      description: Creates a new user account with a hashed password. Returns the
+        username and email upon successful registration.
       summary: Register a new user
       tags:
       - Auth
@@ -701,6 +742,8 @@ paths:
   /api/v1/social/github/:
     post:
       operationId: v1_social_github_create
+      description: Exchange a GitHub Access Token for a JWT pair. If the user doesn't
+        exist, a new account will be created automatically.
       summary: Login with GitHub
       tags:
       - Auth
@@ -725,12 +768,13 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: {}
+                $ref: '#/components/schemas/LoginResponse'
           description: ''
   /api/v1/social/google/:
     post:
       operationId: v1_social_google_create
+      description: Exchange a Google ID Token for a JWT pair. If the user doesn't
+        exist, a new account will be created automatically.
       summary: Login with Google
       tags:
       - Auth
@@ -755,8 +799,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: {}
+                $ref: '#/components/schemas/LoginResponse'
           description: ''
 components:
   schemas:
@@ -976,6 +1019,33 @@ components:
           minLength: 1
       required:
       - password
+      - username
+    LoginResponse:
+      type: object
+      properties:
+        refresh:
+          type: string
+        access:
+          type: string
+        user:
+          $ref: '#/components/schemas/LoginUserResponse'
+      required:
+      - access
+      - refresh
+      - user
+    LoginUserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+      required:
+      - email
+      - id
       - username
     LogoutRequestRequest:
       type: object

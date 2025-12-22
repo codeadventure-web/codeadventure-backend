@@ -63,15 +63,27 @@ class CourseViewSet(viewsets.ModelViewSet):
                 )
         return qs
 
-    @extend_schema(operation_id="v1_course_list")
+    @extend_schema(
+        tags=["Courses"],
+        summary="List all courses",
+        description="Returns a paginated list of all available courses. Supports filtering by publication status and searching by title or description.",
+    )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
-    @extend_schema(operation_id="v1_course_create")
+    @extend_schema(
+        tags=["Courses"],
+        summary="Create a new course",
+        description="Creates a new course. Restricted to users with teaching/staff permissions.",
+    )
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
 
-    @extend_schema(operation_id="v1_course_retrieve")
+    @extend_schema(
+        tags=["Courses"],
+        summary="Retrieve course details (with lessons)",
+        description="Returns detailed information about a single course, including its list of lessons. If the user is authenticated, it also includes their progress for each lesson.",
+    )
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         progress_map = {}
@@ -86,15 +98,27 @@ class CourseViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(instance, context=context)
         return response.Response(serializer.data)
 
-    @extend_schema(operation_id="v1_course_update")
+    @extend_schema(
+        tags=["Courses"],
+        summary="Update a course",
+        description="Updates an existing course. Restricted to teachers/staff.",
+    )
     def update(self, request, *args, **kwargs):
         return super().update(request, *args, **kwargs)
 
-    @extend_schema(operation_id="v1_course_partial_update")
+    @extend_schema(
+        tags=["Courses"],
+        summary="Partially update a course",
+        description="Partially updates an existing course. Restricted to teachers/staff.",
+    )
     def partial_update(self, request, *args, **kwargs):
         return super().partial_update(request, *args, **kwargs)
 
-    @extend_schema(operation_id="v1_course_destroy")
+    @extend_schema(
+        tags=["Courses"],
+        summary="Delete a course",
+        description="Deletes an existing course. Restricted to teachers/staff.",
+    )
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
 
@@ -112,6 +136,11 @@ class LessonProgressView(
     def get_queryset(self):
         return Progress.objects.filter(user=self.request.user)
 
+    @extend_schema(
+        tags=["Progress"],
+        summary="Get progress by lesson ID",
+        description="Retrieves the completion status of a specific lesson for the authenticated user.",
+    )
     @decorators.action(
         detail=False, methods=["get"], url_path=r"by-lesson/(?P<lesson_id>[^/.]+)"
     )
@@ -119,6 +148,11 @@ class LessonProgressView(
         prg, _ = services.get_or_create_progress(user=request.user, lesson_id=lesson_id)
         return response.Response(ProgressSer(prg).data)
 
+    @extend_schema(
+        tags=["Progress"],
+        summary="Mark lesson as complete",
+        description="Manually marks a lesson as completed for the authenticated user.",
+    )
     @decorators.action(
         detail=False, methods=["patch"], url_path=r"complete/(?P<lesson_id>[^/.]+)"
     )
@@ -134,9 +168,11 @@ class LessonView(APIView):
         return [AllowAny()]
 
     @extend_schema(
+        tags=["Courses"],
         operation_id="v1_lesson_detail",
         responses={200: LessonLiteSer},
         summary="Retrieve lesson details",
+        description="Returns the full content of a lesson, including the associated problem or quiz. Includes user-specific progress if authenticated.",
     )
     def get(self, request, course_slug=None, lesson_slug=None):
         course = get_object_or_404(Course, slug=course_slug)
@@ -158,6 +194,7 @@ class LessonView(APIView):
         return Response(serializer.data)
 
     @extend_schema(
+        tags=["Courses"],
         operation_id="v1_lesson_submit",
         request=inline_serializer(
             name="LessonSubmitRequest",
@@ -181,6 +218,7 @@ class LessonView(APIView):
             )
         },
         summary="Submit lesson solution (code or quiz)",
+        description="Processes a submission for a lesson. For JUDGE lessons, it evaluates code in a sandbox. For QUIZ lessons, it grades the provided answers. If the submission passes, the lesson is marked as completed.",
     )
     def post(self, request, course_slug=None, lesson_slug=None):
         course = get_object_or_404(Course, slug=course_slug)

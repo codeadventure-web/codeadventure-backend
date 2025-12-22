@@ -33,6 +33,13 @@ CodeAdventure is a web platform supporting online programming training. The main
 - Python >= 3.10
 - Django >= 4.0
 - Node.js >= 18
+
+## 📖 API Documentation
+Interactive API documentation is available via:
+- **Swagger UI:** [http://localhost:8000/api/docs/](http://localhost:8000/api/docs/)
+- **Redoc:** [http://localhost:8000/api/redoc/](http://localhost:8000/api/redoc/)
+- **OpenAPI Schema:** [http://localhost:8000/api/schema/](http://localhost:8000/api/schema/)
+
 ### How to install
 ```bash
 git clone https://github.com/codeadventure-web/codeadventure-backend.git

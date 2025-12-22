@@ -24,6 +24,18 @@ class ProfileSerializer(serializers.ModelSerializer):
         fields = ("avatar", "bio")
 
 
+class LoginUserResponseSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    username = serializers.CharField()
+    email = serializers.EmailField()
+
+
+class LoginResponseSerializer(serializers.Serializer):
+    refresh = serializers.CharField()
+    access = serializers.CharField()
+    user = LoginUserResponseSerializer()
+
+
 class UserMeSerializer(serializers.ModelSerializer):
     profile = ProfileSerializer()
 
