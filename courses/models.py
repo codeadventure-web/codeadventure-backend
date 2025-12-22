@@ -73,7 +73,7 @@ class Lesson(UUIDModel, TimeStamped):
                 models.Max("order")
             )["order__max"]
             self.order = (max_order or 0) + 1
-        
+
         # Always update slug based on order
         self.slug = f"{int(self.order):02d}"
         super().save(*args, **kwargs)

@@ -146,13 +146,7 @@ class ProgressSer(serializers.ModelSerializer):
 class MyCourseSerializer(serializers.ModelSerializer):
     completion_percentage = serializers.IntegerField()
     is_completed = serializers.BooleanField()
-    
+
     class Meta:
         model = Course
-        fields = (
-            "id",
-            "title",
-            "slug",
-            "completion_percentage",
-            "is_completed"
-        )
+        fields = ("id", "title", "slug", "completion_percentage", "is_completed")

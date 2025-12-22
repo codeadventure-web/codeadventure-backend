@@ -6,16 +6,19 @@ django.setup()
 
 from courses.models import Course, Lesson
 
+
 def run():
     # Setup
-    course, created = Course.objects.get_or_create(title="Test Course", slug="test-course")
+    course, created = Course.objects.get_or_create(
+        title="Test Course", slug="test-course"
+    )
     Lesson.objects.filter(course=course).delete()
-    
+
     print("Creating Lesson 1 (default order=0)...")
-    l1 = Lesson(course=course, title="L1") # order defaults to 0
+    l1 = Lesson(course=course, title="L1")  # order defaults to 0
     l1.save()
     print(f"L1: ID={l1.id}, Order={l1.order}, Slug={l1.slug}")
-    
+
     print("Creating Lesson 2 (default order=0)...")
     l2 = Lesson(course=course, title="L2")
     l2.save()
@@ -31,6 +34,7 @@ def run():
     l4 = Lesson(course=course, title="L4")
     l4.save()
     print(f"L4: ID={l4.id}, Order={l4.order}, Slug={l4.slug}")
+
 
 if __name__ == "__main__":
     run()

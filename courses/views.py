@@ -132,15 +132,19 @@ class CourseViewSet(viewsets.ModelViewSet):
     @extend_schema(
         tags=["Courses"],
         summary="List enrolled courses with progress",
-        responses={200: MyCourseSerializer(many=True)}
+        responses={200: MyCourseSerializer(many=True)},
     )
-    @decorators.action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
+    @decorators.action(
+        detail=False, methods=["get"], permission_classes=[IsAuthenticated]
+    )
     def my_courses(self, request):
         # Get all courses where user has any progress
-        course_ids = Progress.objects.filter(user=request.user).values_list(
-            "lesson__course_id", flat=True
-        ).distinct()
-        
+        course_ids = (
+            Progress.objects.filter(user=request.user)
+            .values_list("lesson__course_id", flat=True)
+            .distinct()
+        )
+
         enrolled_courses = Course.objects.filter(id__in=course_ids)
 
         results = []
@@ -153,20 +157,22 @@ class CourseViewSet(viewsets.ModelViewSet):
                 completed_lessons = Progress.objects.filter(
                     user=request.user,
                     lesson__course=course,
-                    status=ProgressStatus.COMPLETED
+                    status=ProgressStatus.COMPLETED,
                 ).count()
                 percentage = int((completed_lessons / total_lessons) * 100)
-            
-            is_completed = (percentage == 100 and total_lessons > 0)
-            
-            results.append({
-                "id": course.id,
-                "title": course.title,
-                "slug": course.slug,
-                "completion_percentage": percentage,
-                "is_completed": is_completed
-            })
-            
+
+            is_completed = percentage == 100 and total_lessons > 0
+
+            results.append(
+                {
+                    "id": course.id,
+                    "title": course.title,
+                    "slug": course.slug,
+                    "completion_percentage": percentage,
+                    "is_completed": is_completed,
+                }
+            )
+
         serializer = MyCourseSerializer(results, many=True)
         return Response(serializer.data)
 
@@ -174,38 +180,45 @@ class CourseViewSet(viewsets.ModelViewSet):
         tags=["Courses"],
         summary="Resume course",
         description="Returns the slug of the next incomplete lesson for the user, or the first lesson if none started.",
-        responses={200: inline_serializer(name="ResumeResponse", fields={"lesson_slug": serializers.CharField()})}
+        responses={
+            200: inline_serializer(
+                name="ResumeResponse", fields={"lesson_slug": serializers.CharField()}
+            )
+        },
     )
-    @decorators.action(detail=True, methods=["get"], permission_classes=[IsAuthenticated])
+    @decorators.action(
+        detail=True, methods=["get"], permission_classes=[IsAuthenticated]
+    )
     def resume(self, request, slug=None):
         course = self.get_object()
         # Get all lessons ordered
         lessons = course.lessons.all().order_by("order")
-        
+
         # Get completed lesson IDs
         completed_ids = Progress.objects.filter(
-            user=request.user, 
-            lesson__course=course, 
-            status=ProgressStatus.COMPLETED
+            user=request.user, lesson__course=course, status=ProgressStatus.COMPLETED
         ).values_list("lesson_id", flat=True)
-        
+
         # Find first lesson not in completed_ids
         next_lesson = None
         for lesson in lessons:
             if lesson.id not in completed_ids:
                 next_lesson = lesson
                 break
-        
+
         # If all completed, maybe return the last one? Or null?
         # User requirement: "just click to continue".
         # If finished, probably take them to the last one or stay there.
         # Let's return the first one if all completed (review) or just the last one.
         if not next_lesson and lessons.exists():
             next_lesson = lessons.last()
-            
+
         if not next_lesson:
-            return Response({"detail": "No lessons in this course."}, status=status.HTTP_404_NOT_FOUND)
-            
+            return Response(
+                {"detail": "No lessons in this course."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         return Response({"lesson_slug": next_lesson.slug})
 
 

@@ -7,6 +7,7 @@ django.setup()
 
 from courses.models import Course, Lesson
 
+
 def run():
     course, _ = Course.objects.get_or_create(title="Validation Test", slug="valid-test")
     Lesson.objects.filter(course=course).delete()
@@ -14,7 +15,7 @@ def run():
     print("Creating two unsaved lessons with empty slug...")
     l1 = Lesson(course=course, title="L1", order=0, slug="")
     l2 = Lesson(course=course, title="L2", order=0, slug="")
-    
+
     # Simulate Formset validation
     try:
         print("Validating L1...")
@@ -24,7 +25,7 @@ def run():
         print(f"L1 invalid: {e}")
 
     # L1 is not saved yet.
-    
+
     try:
         print("Validating L2...")
         l2.validate_unique()
@@ -34,7 +35,7 @@ def run():
 
     # If I save L1, then validate L2?
     print("Saving L1...")
-    l1.save() # slug becomes "01"
+    l1.save()  # slug becomes "01"
     print(f"L1 saved. Slug: {l1.slug}")
 
     try:
@@ -43,10 +44,11 @@ def run():
         print("L2 valid.")
     except ValidationError as e:
         print(f"L2 invalid: {e}")
-        
+
     print("Saving L2...")
-    l2.save() # slug becomes "02"
+    l2.save()  # slug becomes "02"
     print(f"L2 saved. Slug: {l2.slug}")
+
 
 if __name__ == "__main__":
     run()
