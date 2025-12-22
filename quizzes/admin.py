@@ -11,6 +11,7 @@ class ChoiceInline(admin.TabularInline):
 class QuestionAdmin(admin.ModelAdmin):
     list_display = ("text", "quiz")
     list_filter = ("quiz",)
+    search_fields = ("text",)
     inlines = [ChoiceInline]
 
 
@@ -22,6 +23,7 @@ class QuestionInline(admin.TabularInline):
 @admin.register(Quiz)
 class QuizAdmin(admin.ModelAdmin):
     list_display = ("title", "id", "created_at")
+    search_fields = ("title",)
     inlines = [QuestionInline]
 
 

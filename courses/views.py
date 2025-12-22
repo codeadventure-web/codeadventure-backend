@@ -22,11 +22,12 @@ from .serializers import (
     ProgressSer,
     LessonLiteSer,
     LessonSerializer,
+    MyCourseSerializer,
 )
 from .filters import CourseFilter
 from . import services
 from common.permissions import IsTeacherOrReadOnly
-from common.enums import LessonType
+from common.enums import LessonType, ProgressStatus
 
 from judge.models import Language, Submission
 from judge.serializers import SubmitSer
@@ -129,19 +130,83 @@ class CourseViewSet(viewsets.ModelViewSet):
         return super().destroy(request, *args, **kwargs)
 
     @extend_schema(
-        tags=["Lessons"],
-        operation_id="v1_lesson_create",
-        summary="Create a new lesson in this course",
-        description="Creates a new lesson attached to the course specified by the slug. Restricted to teachers/staff.",
-        request=LessonSerializer,
-        responses={201: LessonSerializer},
+        tags=["Courses"],
+        summary="List enrolled courses with progress",
+        responses={200: MyCourseSerializer(many=True)}
     )
-    def create_lesson(self, request, slug=None):
+    @decorators.action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
+    def my_courses(self, request):
+        # Get all courses where user has any progress
+        course_ids = Progress.objects.filter(user=request.user).values_list(
+            "lesson__course_id", flat=True
+        ).distinct()
+        
+        enrolled_courses = Course.objects.filter(id__in=course_ids)
+
+        results = []
+        for course in enrolled_courses:
+            total_lessons = course.lessons.count()
+            if total_lessons == 0:
+                completed_lessons = 0
+                percentage = 0
+            else:
+                completed_lessons = Progress.objects.filter(
+                    user=request.user,
+                    lesson__course=course,
+                    status=ProgressStatus.COMPLETED
+                ).count()
+                percentage = int((completed_lessons / total_lessons) * 100)
+            
+            is_completed = (percentage == 100 and total_lessons > 0)
+            
+            results.append({
+                "id": course.id,
+                "title": course.title,
+                "slug": course.slug,
+                "completion_percentage": percentage,
+                "is_completed": is_completed
+            })
+            
+        serializer = MyCourseSerializer(results, many=True)
+        return Response(serializer.data)
+
+    @extend_schema(
+        tags=["Courses"],
+        summary="Resume course",
+        description="Returns the slug of the next incomplete lesson for the user, or the first lesson if none started.",
+        responses={200: inline_serializer(name="ResumeResponse", fields={"lesson_slug": serializers.CharField()})}
+    )
+    @decorators.action(detail=True, methods=["get"], permission_classes=[IsAuthenticated])
+    def resume(self, request, slug=None):
         course = self.get_object()
-        serializer = LessonSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save(course=course)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        # Get all lessons ordered
+        lessons = course.lessons.all().order_by("order")
+        
+        # Get completed lesson IDs
+        completed_ids = Progress.objects.filter(
+            user=request.user, 
+            lesson__course=course, 
+            status=ProgressStatus.COMPLETED
+        ).values_list("lesson_id", flat=True)
+        
+        # Find first lesson not in completed_ids
+        next_lesson = None
+        for lesson in lessons:
+            if lesson.id not in completed_ids:
+                next_lesson = lesson
+                break
+        
+        # If all completed, maybe return the last one? Or null?
+        # User requirement: "just click to continue".
+        # If finished, probably take them to the last one or stay there.
+        # Let's return the first one if all completed (review) or just the last one.
+        if not next_lesson and lessons.exists():
+            next_lesson = lessons.last()
+            
+        if not next_lesson:
+            return Response({"detail": "No lessons in this course."}, status=status.HTTP_404_NOT_FOUND)
+            
+        return Response({"lesson_slug": next_lesson.slug})
 
 
 class LessonProgressView(
@@ -217,34 +282,6 @@ class LessonView(APIView):
 
         serializer = LessonLiteSer(lesson, context={"progress_map": progress_map})
         return Response(serializer.data)
-
-    @extend_schema(
-        tags=["Lessons"],
-        operation_id="v1_lesson_partial_update",
-        summary="Update lesson details",
-        description="Updates an existing lesson using its course and lesson slugs. Restricted to teachers/staff.",
-        request=LessonSerializer,
-        responses={200: LessonSerializer},
-    )
-    def patch(self, request, course_slug=None, lesson_slug=None):
-        course = get_object_or_404(Course, slug=course_slug)
-        lesson = get_object_or_404(Lesson, course=course, slug=lesson_slug)
-        serializer = LessonSerializer(lesson, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
-
-    @extend_schema(
-        tags=["Lessons"],
-        operation_id="v1_lesson_delete",
-        summary="Delete a lesson",
-        description="Deletes an existing lesson using its course and lesson slugs. Restricted to teachers/staff.",
-    )
-    def delete(self, request, course_slug=None, lesson_slug=None):
-        course = get_object_or_404(Course, slug=course_slug)
-        lesson = get_object_or_404(Lesson, course=course, slug=lesson_slug)
-        lesson.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @extend_schema(
         tags=["Courses"],

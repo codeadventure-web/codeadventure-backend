@@ -41,7 +41,7 @@ class Lesson(UUIDModel, TimeStamped):
 
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="lessons")
     title = models.CharField(max_length=200)
-    slug = models.SlugField(max_length=200, blank=True)
+    slug = models.SlugField(max_length=200, blank=True, null=True, default=None)
     order = models.PositiveIntegerField(default=0)
     content_md = models.TextField(blank=True)
 
@@ -68,9 +68,14 @@ class Lesson(UUIDModel, TimeStamped):
         )
 
     def save(self, *args, **kwargs):
-        if not self.slug:
-            # Generate slug from order, e.g., "01", 10 -> "10"
-            self.slug = f"{self.order:02d}"
+        if self._state.adding and int(self.order or 0) == 0:
+            max_order = Lesson.objects.filter(course=self.course).aggregate(
+                models.Max("order")
+            )["order__max"]
+            self.order = (max_order or 0) + 1
+        
+        # Always update slug based on order
+        self.slug = f"{int(self.order):02d}"
         super().save(*args, **kwargs)
 
     def clean(self):

@@ -11,13 +11,15 @@ class TagAdmin(admin.ModelAdmin):
 class LessonInline(admin.TabularInline):
     model = Lesson
     extra = 1
-    fields = ("title", "order", "type")
+    fields = ("title", "order", "type", "problem", "quiz")
+    autocomplete_fields = ["problem", "quiz"]
 
 
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
     list_display = ("title", "slug", "is_published", "created_at")
     list_filter = ("is_published", "tags")
+    search_fields = ("title",)
     prepopulated_fields = {"slug": ("title",)}
     filter_horizontal = ("tags",)
     inlines = [LessonInline]
@@ -25,10 +27,13 @@ class CourseAdmin(admin.ModelAdmin):
 
 @admin.register(Lesson)
 class LessonAdmin(admin.ModelAdmin):
-    list_display = ("title", "course", "order", "type")
+    list_display = ("title", "course", "order", "type", "problem", "quiz")
     list_filter = ("course", "type")
+    list_editable = ("order",)
     search_fields = ("title", "content_md")
     ordering = ("course", "order")
+    autocomplete_fields = ["course", "problem", "quiz"]
+    readonly_fields = ("slug",)
 
 
 @admin.register(Progress)

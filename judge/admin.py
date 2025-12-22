@@ -18,10 +18,12 @@ class TestCaseInline(admin.TabularInline):
 @admin.register(Problem)
 class ProblemAdmin(admin.ModelAdmin):
     list_display = ("title", "slug", "time_limit_ms", "memory_limit_mb", "created_at")
+    list_editable = ("time_limit_ms", "memory_limit_mb")
     search_fields = ("title", "slug")
     prepopulated_fields = {"slug": ("title",)}
     inlines = [TestCaseInline]
     filter_horizontal = ("allowed_languages",)
+    save_as = True
 
 
 @admin.register(TestCase)
