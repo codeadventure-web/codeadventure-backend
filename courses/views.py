@@ -16,7 +16,13 @@ from rest_framework.permissions import AllowAny
 
 from drf_spectacular.utils import extend_schema, inline_serializer
 from .models import Course, Lesson, Progress
-from .serializers import CourseListSer, CourseDetailSer, ProgressSer, LessonLiteSer
+from .serializers import (
+    CourseListSer,
+    CourseDetailSer,
+    ProgressSer,
+    LessonLiteSer,
+    LessonSerializer,
+)
 from .filters import CourseFilter
 from . import services
 from common.permissions import IsTeacherOrReadOnly
@@ -122,6 +128,20 @@ class CourseViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
 
+    @extend_schema(
+        tags=["Lessons"],
+        summary="Create a new lesson in this course",
+        description="Creates a new lesson attached to the course specified by the slug. Restricted to teachers/staff.",
+        request=LessonSerializer,
+        responses={201: LessonSerializer},
+    )
+    def create_lesson(self, request, slug=None):
+        course = self.get_object()
+        serializer = LessonSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(course=course)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
 class LessonProgressView(
     mixins.ListModelMixin,
@@ -163,6 +183,8 @@ class LessonProgressView(
 
 class LessonView(APIView):
     def get_permissions(self):
+        if self.request.method in ["PATCH", "PUT", "DELETE"]:
+            return [IsTeacherOrReadOnly()]
         if self.request.method == "POST":
             return [IsAuthenticated()]
         return [AllowAny()]
@@ -192,6 +214,32 @@ class LessonView(APIView):
 
         serializer = LessonLiteSer(lesson, context={"progress_map": progress_map})
         return Response(serializer.data)
+
+    @extend_schema(
+        tags=["Lessons"],
+        summary="Update lesson details",
+        description="Updates an existing lesson using its course and lesson slugs. Restricted to teachers/staff.",
+        request=LessonSerializer,
+        responses={200: LessonSerializer},
+    )
+    def patch(self, request, course_slug=None, lesson_slug=None):
+        course = get_object_or_404(Course, slug=course_slug)
+        lesson = get_object_or_404(Lesson, course=course, slug=lesson_slug)
+        serializer = LessonSerializer(lesson, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    @extend_schema(
+        tags=["Lessons"],
+        summary="Delete a lesson",
+        description="Deletes an existing lesson using its course and lesson slugs. Restricted to teachers/staff.",
+    )
+    def delete(self, request, course_slug=None, lesson_slug=None):
+        course = get_object_or_404(Course, slug=course_slug)
+        lesson = get_object_or_404(Lesson, course=course, slug=lesson_slug)
+        lesson.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @extend_schema(
         tags=["Courses"],

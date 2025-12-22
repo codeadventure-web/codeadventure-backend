@@ -2,8 +2,23 @@ import pytest
 from rest_framework.test import APIClient
 from django.contrib.auth import get_user_model
 from courses.models import Course, Lesson, Tag
+from judge.models import Problem
+from quizzes.models import Quiz
 
 User = get_user_model()
+
+
+@pytest.fixture
+def problem_python(db):
+    return Problem.objects.create(
+        title="Sum of Two Numbers",
+        slug="sum-of-two",
+    )
+
+
+@pytest.fixture
+def quiz_python(db):
+    return Quiz.objects.create(title="Python Basics Quiz")
 
 
 @pytest.fixture
@@ -26,6 +41,16 @@ def user_bob(db):
 
 
 @pytest.fixture
+def user_teacher(db):
+    return User.objects.create_user(
+        username="teacher",
+        email="teacher@test.com",
+        password="password123",
+        is_staff=True,
+    )
+
+
+@pytest.fixture
 def tag_python(db):
     return Tag.objects.create(name="Python")
 
@@ -43,12 +68,13 @@ def course_python(db, tag_python):
 
 
 @pytest.fixture
-def lesson_decorators(db, course_python):
+def lesson_decorators(db, course_python, problem_python):
     return Lesson.objects.create(
         course=course_python,
         title="Intro to Decorators",
         order=1,
         content_md="# Decorators",
+        problem=problem_python,
     )
 
 

@@ -3,7 +3,13 @@ from .views import CourseViewSet, LessonProgressView, LessonView
 
 course_list = CourseViewSet.as_view({"get": "list", "post": "create"})
 course_detail = CourseViewSet.as_view(
-    {"get": "retrieve", "put": "update", "patch": "partial_update", "delete": "destroy"}
+    {
+        "get": "retrieve",
+        "post": "create_lesson",
+        "put": "update",
+        "patch": "partial_update",
+        "delete": "destroy",
+    }
 )
 
 urlpatterns = [
