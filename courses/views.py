@@ -20,6 +20,7 @@ from .serializers import (
     CourseListSer,
     CourseDetailSer,
     ProgressSer,
+    ProgressLiteSer,
     LessonLiteSer,
     LessonSerializer,
     MyCourseSerializer,
@@ -354,6 +355,9 @@ class LessonView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Ensure progress exists (mark as started)
+        progress_obj, _ = services.get_or_create_progress(request.user, lesson.id)
+
         ser = SubmitSer(data=request.data)
         ser.is_valid(raise_exception=True)
 
@@ -389,13 +393,14 @@ class LessonView(APIView):
         logger.info(f"Submission {sub.id} status: {sub.status}. Passed: {passed}")
 
         if passed:
-            services.complete_lesson_for_user(request.user, lesson.id)
+            progress_obj = services.complete_lesson_for_user(request.user, lesson.id)
 
         next_url = self.get_next_url(lesson.course, lesson)
 
         return Response(
             {
                 "passed": passed,
+                "progress": ProgressLiteSer(progress_obj).data,
                 "next_url": next_url,
                 "submission_id": str(sub.id),
                 "status": sub.status,
@@ -410,6 +415,9 @@ class LessonView(APIView):
                 {"error": "This lesson does not have a quiz."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        # Ensure progress exists (mark as started)
+        progress_obj, _ = services.get_or_create_progress(request.user, lesson.id)
 
         ser = AttemptSubmitSer(data=request.data)
         ser.is_valid(raise_exception=True)
@@ -448,13 +456,14 @@ class LessonView(APIView):
         )
 
         if passed:
-            services.complete_lesson_for_user(request.user, lesson.id)
+            progress_obj = services.complete_lesson_for_user(request.user, lesson.id)
 
         next_url = self.get_next_url(lesson.course, lesson)
 
         return Response(
             {
                 "passed": passed,
+                "progress": ProgressLiteSer(progress_obj).data,
                 "next_url": next_url,
             },
             status=status.HTTP_201_CREATED,

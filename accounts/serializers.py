@@ -145,6 +145,22 @@ class ResetPasswordSerializer(serializers.Serializer):
         return user
 
 
+def make_username_unique(username):
+    """
+    Ensure the username is unique by appending a counter if necessary.
+    """
+    if not User.objects.filter(username=username).exists():
+        return username
+
+    base_username = username
+    counter = 1
+    while True:
+        new_username = f"{base_username}{counter}"
+        if not User.objects.filter(username=new_username).exists():
+            return new_username
+        counter += 1
+
+
 class GoogleLoginSerializer(serializers.Serializer):
     id_token = serializers.CharField()
 
@@ -187,6 +203,8 @@ class GoogleLoginSerializer(serializers.Serializer):
             return user
 
         username = email.split("@")[0]
+        username = make_username_unique(username)
+
         first_name = google_data.get("given_name", "")
         last_name = google_data.get("family_name", "")
 
@@ -259,8 +277,10 @@ class GithubLoginSerializer(serializers.Serializer):
         if user:
             return user
 
+        username = make_username_unique(username_guess)
+
         user = User.objects.create(
-            username=username_guess,
+            username=username,
             email=email,
             first_name=first_name,
             last_name=last_name,

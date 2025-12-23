@@ -1,6 +1,7 @@
 import os
 import redis
 from django.db import connection
+from django.http import HttpResponseRedirect
 from .serializers import (
     UserMeSerializer,
     RegisterSerializer,
@@ -256,6 +257,56 @@ class GoogleLoginView(APIView):
         return Response(data, status=status.HTTP_200_OK)
 
 
+class GoogleLoginRedirectView(APIView):
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        tags=["Auth"],
+        summary="Get Google Login URL",
+        description="Redirects to Google's OAuth2 login page.",
+    )
+    def get(self, request):
+        from .services import get_google_auth_url
+        return HttpResponseRedirect(get_google_auth_url())
+
+
+class GoogleCallbackView(APIView):
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        tags=["Auth"],
+        summary="Google OAuth Callback",
+        description="Handles the callback from Google, exchanges code for token, logs in user, and redirects to frontend.",
+    )
+    def get(self, request):
+        from .services import google_get_access_token
+        from .serializers import GoogleLoginSerializer
+        from django.conf import settings
+        from django.shortcuts import redirect
+
+        code = request.query_params.get("code")
+        if not code:
+            return Response({"error": "Code not provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            token_data = google_get_access_token(code)
+            id_token_str = token_data.get("id_token")
+            
+            # Reuse existing logic
+            serializer = GoogleLoginSerializer(data={"id_token": id_token_str})
+            serializer.is_valid(raise_exception=True)
+            user = serializer.create_or_get_user()
+
+            refresh = RefreshToken.for_user(user)
+            
+            # Redirect to frontend with tokens
+            frontend_url = settings.FRONTEND_URL
+            return redirect(f"{frontend_url}/auth/success?access={str(refresh.access_token)}&refresh={str(refresh)}")
+            
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
 class GithubLoginView(APIView):
     permission_classes = [AllowAny]
 
@@ -283,3 +334,53 @@ class GithubLoginView(APIView):
             "provider": "github",
         }
         return Response(data, status=status.HTTP_200_OK)
+
+
+class GithubLoginRedirectView(APIView):
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        tags=["Auth"],
+        summary="Get GitHub Login URL",
+        description="Redirects to GitHub's OAuth2 login page.",
+    )
+    def get(self, request):
+        from .services import get_github_auth_url
+        return HttpResponseRedirect(get_github_auth_url())
+
+
+class GithubCallbackView(APIView):
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        tags=["Auth"],
+        summary="GitHub OAuth Callback",
+        description="Handles the callback from GitHub, exchanges code for token, logs in user, and redirects to frontend.",
+    )
+    def get(self, request):
+        from .services import github_get_access_token
+        from .serializers import GithubLoginSerializer
+        from django.conf import settings
+        from django.shortcuts import redirect
+
+        code = request.query_params.get("code")
+        if not code:
+            return Response({"error": "Code not provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            token_data = github_get_access_token(code)
+            access_token = token_data.get("access_token")
+            
+            # Reuse existing logic
+            serializer = GithubLoginSerializer(data={"access_token": access_token})
+            serializer.is_valid(raise_exception=True)
+            user = serializer.create_or_get_user()
+
+            refresh = RefreshToken.for_user(user)
+            
+            # Redirect to frontend with tokens
+            frontend_url = settings.FRONTEND_URL
+            return redirect(f"{frontend_url}/auth/success?access={str(refresh.access_token)}&refresh={str(refresh)}")
+            
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
