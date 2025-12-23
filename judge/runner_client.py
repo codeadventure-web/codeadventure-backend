@@ -30,8 +30,7 @@ class DockerSandbox:
     def __init__(self, language: Language, code: str, memory_limit_mb: int):
         self.language = language
         self.code = code
-        # Ignore per-problem memory limit, use 256MB for learning (enough for easy tasks, stops leaks)
-        self.memory_limit_mb = 256
+        self.memory_limit_mb = memory_limit_mb
         self.container_name = f"sandbox-{uuid.uuid4()}"
         self.tmpdir = tempfile.TemporaryDirectory()
         self.tmp_path = Path(self.tmpdir.name)
@@ -114,8 +113,7 @@ class DockerSandbox:
         Runs a single test case using `docker exec`.
         Returns: (stdout, stderr, exit_code, status_tag)
         """
-        # Ignore per-problem time limit, use 5 seconds (enough for easy tasks, kills loops fast)
-        timeout_sec = 5.0
+        timeout_sec = time_limit_ms / 1000.0
         run_cmd = self.cfg["run_cmd"]
 
         try:

@@ -1,7 +1,9 @@
+import logging
 from .models import Progress
 from accounts.models import User
 from common.enums import ProgressStatus
 
+logger = logging.getLogger(__name__)
 
 # Lesson Progress Services
 
@@ -27,7 +29,10 @@ def complete_lesson_for_user(user: User, lesson_id: str) -> Progress:
     progress, _ = get_or_create_progress(user, lesson_id)
 
     if progress.status != ProgressStatus.COMPLETED:
+        logger.info(f"Marking lesson {lesson_id} as COMPLETED for user {user.id}")
         progress.status = ProgressStatus.COMPLETED
         progress.save(update_fields=["status"])
+    else:
+        logger.info(f"Lesson {lesson_id} already COMPLETED for user {user.id}")
 
     return progress

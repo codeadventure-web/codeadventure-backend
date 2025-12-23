@@ -37,6 +37,9 @@ from quizzes.serializers import AttemptSubmitSer
 from quizzes.grading import grade_attempt
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class CourseViewSet(viewsets.ModelViewSet):
@@ -385,6 +388,8 @@ class LessonView(APIView):
 
         # If Accepted, complete the lesson
         passed = sub.status == "ac"
+        logger.info(f"Submission {sub.id} status: {sub.status}. Passed: {passed}")
+        
         if passed:
             services.complete_lesson_for_user(request.user, lesson.id)
 
@@ -429,6 +434,8 @@ class LessonView(APIView):
         grade_attempt(attempt)
 
         passed = attempt.is_passed
+        logger.info(f"Quiz attempt {attempt.id} passed: {passed}")
+
         if passed:
             services.complete_lesson_for_user(request.user, lesson.id)
 
