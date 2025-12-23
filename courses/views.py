@@ -213,7 +213,7 @@ class CourseViewSet(viewsets.ModelViewSet):
         # If finished, probably take them to the last one or stay there.
         # Let's return the first one if all completed (review) or just the last one.
         if not next_lesson and lessons.exists():
-            next_lesson = lessons.last()
+            next_lesson = lessons.first()
 
         if not next_lesson:
             return Response(
@@ -258,6 +258,7 @@ class LessonProgressView(
         detail=False, methods=["patch"], url_path=r"complete/(?P<lesson_id>[^/.]+)"
     )
     def complete(self, request, lesson_id=None):
+        get_object_or_404(Lesson, id=lesson_id)
         prg = services.complete_lesson_for_user(user=request.user, lesson_id=lesson_id)
         return response.Response(ProgressSer(prg).data)
 

@@ -21,6 +21,16 @@ urlpatterns = [
         LessonProgressView.as_view({"get": "list"}),
         name="progress-list",
     ),
+    path(
+        "lessons/by-lesson/<uuid:lesson_id>/",
+        LessonProgressView.as_view({"get": "by_lesson"}),
+        name="progress-by-lesson",
+    ),
+    path(
+        "lessons/<uuid:lesson_id>/complete/",
+        LessonProgressView.as_view({"patch": "complete"}),
+        name="lesson-complete",
+    ),
     path("<slug:slug>/resume/", course_resume, name="course-resume"),
     path("<slug:slug>/", course_detail, name="course-detail"),
     path(
