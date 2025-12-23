@@ -389,7 +389,7 @@ class LessonView(APIView):
         # If Accepted, complete the lesson
         passed = sub.status == "ac"
         logger.info(f"Submission {sub.id} status: {sub.status}. Passed: {passed}")
-        
+
         if passed:
             services.complete_lesson_for_user(request.user, lesson.id)
 
