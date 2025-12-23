@@ -221,69 +221,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/LessonSubmitResponse'
           description: ''
-    patch:
-      operationId: v1_lesson_partial_update
-      description: Updates an existing lesson using its course and lesson slugs. Restricted
-        to teachers/staff.
-      summary: Update lesson details
-      parameters:
-      - in: path
-        name: course_slug
-        schema:
-          type: string
-        required: true
-      - in: path
-        name: lesson_slug
-        schema:
-          type: string
-        required: true
-      tags:
-      - Lessons
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PatchedLessonRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/PatchedLessonRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/PatchedLessonRequest'
-      security:
-      - jwtAuth: []
-      - bearerAuth: []
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Lesson'
-          description: ''
-    delete:
-      operationId: v1_lesson_delete
-      description: Deletes an existing lesson using its course and lesson slugs. Restricted
-        to teachers/staff.
-      summary: Delete a lesson
-      parameters:
-      - in: path
-        name: course_slug
-        schema:
-          type: string
-        required: true
-      - in: path
-        name: lesson_slug
-        schema:
-          type: string
-        required: true
-      tags:
-      - Lessons
-      security:
-      - jwtAuth: []
-      - bearerAuth: []
-      responses:
-        '204':
-          description: No response body
   /api/v1/{slug}/:
     get:
       operationId: v1_retrieve
@@ -308,41 +245,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CourseDetailSer'
-          description: ''
-    post:
-      operationId: v1_lesson_create
-      description: Creates a new lesson attached to the course specified by the slug.
-        Restricted to teachers/staff.
-      summary: Create a new lesson in this course
-      parameters:
-      - in: path
-        name: slug
-        schema:
-          type: string
-        required: true
-      tags:
-      - Lessons
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LessonRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/LessonRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/LessonRequest'
-        required: true
-      security:
-      - jwtAuth: []
-      - bearerAuth: []
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Lesson'
           description: ''
     put:
       operationId: v1_update
@@ -429,6 +331,30 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/v1/{slug}/resume/:
+    get:
+      operationId: v1_resume_retrieve
+      description: Returns the slug of the next incomplete lesson for the user, or
+        the first lesson if none started.
+      summary: Resume course
+      parameters:
+      - in: path
+        name: slug
+        schema:
+          type: string
+        required: true
+      tags:
+      - Courses
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumeResponse'
+          description: ''
   /api/v1/courses/:
     get:
       operationId: v1_courses_list
@@ -513,6 +439,180 @@ paths:
               schema:
                 $ref: '#/components/schemas/CourseListSer'
           description: ''
+  /api/v1/courses/my/:
+    get:
+      operationId: v1_courses_my_list
+      summary: List enrolled courses with progress
+      parameters:
+      - in: query
+        name: is_published
+        schema:
+          type: boolean
+      - name: limit
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: The initial index from which to return the results.
+        schema:
+          type: integer
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: tags
+        schema:
+          type: array
+          items:
+            type: string
+        description: Multiple values may be separated by commas.
+        explode: false
+        style: form
+      tags:
+      - Courses
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMyCourseList'
+          description: ''
+  /api/v1/github/:
+    post:
+      operationId: v1_github_create
+      description: Exchange a GitHub Access Token for a JWT pair. If the user doesn't
+        exist, a new account will be created automatically.
+      summary: Login with GitHub
+      tags:
+      - Auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GithubLoginRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/GithubLoginRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GithubLoginRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+          description: ''
+  /api/v1/github/callback/:
+    get:
+      operationId: v1_github_callback_retrieve
+      description: Handles the callback from GitHub, exchanges code for token, logs
+        in user, and redirects to frontend.
+      summary: GitHub OAuth Callback
+      tags:
+      - Auth
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      - {}
+      responses:
+        '302':
+          description: No response body
+  /api/v1/github/login/:
+    get:
+      operationId: v1_github_login_retrieve
+      description: Redirects to GitHub's OAuth2 login page.
+      summary: Get GitHub Login URL
+      tags:
+      - Auth
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      - {}
+      responses:
+        '302':
+          description: No response body
+  /api/v1/google/:
+    post:
+      operationId: v1_google_create
+      description: Exchange a Google ID Token for a JWT pair. If the user doesn't
+        exist, a new account will be created automatically.
+      summary: Login with Google
+      tags:
+      - Auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GoogleLoginRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/GoogleLoginRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GoogleLoginRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+          description: ''
+  /api/v1/google/callback/:
+    get:
+      operationId: v1_google_callback_retrieve
+      description: Handles the callback from Google, exchanges code for token, logs
+        in user, and redirects to frontend.
+      summary: Google OAuth Callback
+      tags:
+      - Auth
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      - {}
+      responses:
+        '302':
+          description: No response body
+  /api/v1/google/login/:
+    get:
+      operationId: v1_google_login_retrieve
+      description: Redirects to Google's OAuth2 login page.
+      summary: Get Google Login URL
+      tags:
+      - Auth
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      - {}
+      responses:
+        '302':
+          description: No response body
   /api/v1/health/:
     get:
       operationId: v1_health_retrieve
@@ -837,68 +937,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/Register'
           description: ''
-  /api/v1/social/github/:
-    post:
-      operationId: v1_social_github_create
-      description: Exchange a GitHub Access Token for a JWT pair. If the user doesn't
-        exist, a new account will be created automatically.
-      summary: Login with GitHub
-      tags:
-      - Auth
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/GithubLoginRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/GithubLoginRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/GithubLoginRequest'
-        required: true
-      security:
-      - jwtAuth: []
-      - bearerAuth: []
-      - {}
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LoginResponse'
-          description: ''
-  /api/v1/social/google/:
-    post:
-      operationId: v1_social_google_create
-      description: Exchange a Google ID Token for a JWT pair. If the user doesn't
-        exist, a new account will be created automatically.
-      summary: Login with Google
-      tags:
-      - Auth
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/GoogleLoginRequest'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/GoogleLoginRequest'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/GoogleLoginRequest'
-        required: true
-      security:
-      - jwtAuth: []
-      - bearerAuth: []
-      - {}
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LoginResponse'
-          description: ''
 components:
   schemas:
     ChoiceSer:
@@ -911,6 +949,8 @@ components:
         text:
           type: string
           maxLength: 500
+        is_answer:
+          type: boolean
       required:
       - id
       - text
@@ -1034,54 +1074,6 @@ components:
       - id
       - key
       - version
-    Lesson:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-          readOnly: true
-        course:
-          type: string
-          format: uuid
-        title:
-          type: string
-          maxLength: 200
-        slug:
-          type: string
-          readOnly: true
-          pattern: ^[-a-zA-Z0-9_]+$
-        type:
-          $ref: '#/components/schemas/TypeEnum'
-        order:
-          type: integer
-          maximum: 9223372036854775807
-          minimum: 0
-          format: int64
-        problem:
-          type: string
-          format: uuid
-          nullable: true
-        quiz:
-          type: string
-          format: uuid
-          nullable: true
-        content_md:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-          readOnly: true
-        updated_at:
-          type: string
-          format: date-time
-          readOnly: true
-      required:
-      - created_at
-      - id
-      - slug
-      - title
-      - updated_at
     LessonLiteSer:
       type: object
       properties:
@@ -1094,6 +1086,7 @@ components:
           maxLength: 200
         slug:
           type: string
+          nullable: true
           maxLength: 200
           pattern: ^[-a-zA-Z0-9_]+$
         type:
@@ -1122,35 +1115,6 @@ components:
       - problem
       - progress
       - quiz
-      - title
-    LessonRequest:
-      type: object
-      properties:
-        course:
-          type: string
-          format: uuid
-        title:
-          type: string
-          minLength: 1
-          maxLength: 200
-        type:
-          $ref: '#/components/schemas/TypeEnum'
-        order:
-          type: integer
-          maximum: 9223372036854775807
-          minimum: 0
-          format: int64
-        problem:
-          type: string
-          format: uuid
-          nullable: true
-        quiz:
-          type: string
-          format: uuid
-          nullable: true
-        content_md:
-          type: string
-      required:
       - title
     LessonSubmitRequestRequest:
       type: object
@@ -1230,6 +1194,30 @@ components:
           minLength: 1
       required:
       - refresh
+    MyCourse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        title:
+          type: string
+          maxLength: 200
+        slug:
+          type: string
+          maxLength: 50
+          pattern: ^[-a-zA-Z0-9_]+$
+        completion_percentage:
+          type: integer
+        is_completed:
+          type: boolean
+      required:
+      - completion_percentage
+      - id
+      - is_completed
+      - slug
+      - title
     PaginatedCourseListSerList:
       type: object
       required:
@@ -1253,6 +1241,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/CourseListSer'
+    PaginatedMyCourseList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/MyCourse'
     PaginatedProgressSerList:
       type: object
       required:
@@ -1295,33 +1306,6 @@ components:
           items:
             type: string
             minLength: 1
-    PatchedLessonRequest:
-      type: object
-      properties:
-        course:
-          type: string
-          format: uuid
-        title:
-          type: string
-          minLength: 1
-          maxLength: 200
-        type:
-          $ref: '#/components/schemas/TypeEnum'
-        order:
-          type: integer
-          maximum: 9223372036854775807
-          minimum: 0
-          format: int64
-        problem:
-          type: string
-          format: uuid
-          nullable: true
-        quiz:
-          type: string
-          format: uuid
-          nullable: true
-        content_md:
-          type: string
     PatchedUserMeRequest:
       type: object
       properties:
@@ -1499,6 +1483,13 @@ components:
       - new_password
       - token
       - uid
+    ResumeResponse:
+      type: object
+      properties:
+        lesson_slug:
+          type: string
+      required:
+      - lesson_slug
     StatusEnum:
       enum:
       - incomplete

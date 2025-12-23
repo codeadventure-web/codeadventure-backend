@@ -264,9 +264,11 @@ class GoogleLoginRedirectView(APIView):
         tags=["Auth"],
         summary="Get Google Login URL",
         description="Redirects to Google's OAuth2 login page.",
+        responses={302: None},
     )
     def get(self, request):
         from .services import get_google_auth_url
+
         return HttpResponseRedirect(get_google_auth_url())
 
 
@@ -277,6 +279,7 @@ class GoogleCallbackView(APIView):
         tags=["Auth"],
         summary="Google OAuth Callback",
         description="Handles the callback from Google, exchanges code for token, logs in user, and redirects to frontend.",
+        responses={302: None},
     )
     def get(self, request):
         from .services import google_get_access_token
@@ -286,23 +289,27 @@ class GoogleCallbackView(APIView):
 
         code = request.query_params.get("code")
         if not code:
-            return Response({"error": "Code not provided"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Code not provided"}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
             token_data = google_get_access_token(code)
             id_token_str = token_data.get("id_token")
-            
+
             # Reuse existing logic
             serializer = GoogleLoginSerializer(data={"id_token": id_token_str})
             serializer.is_valid(raise_exception=True)
             user = serializer.create_or_get_user()
 
             refresh = RefreshToken.for_user(user)
-            
+
             # Redirect to frontend with tokens
             frontend_url = settings.FRONTEND_URL
-            return redirect(f"{frontend_url}/auth/success?access={str(refresh.access_token)}&refresh={str(refresh)}")
-            
+            return redirect(
+                f"{frontend_url}/auth/success?access={str(refresh.access_token)}&refresh={str(refresh)}"
+            )
+
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -343,9 +350,11 @@ class GithubLoginRedirectView(APIView):
         tags=["Auth"],
         summary="Get GitHub Login URL",
         description="Redirects to GitHub's OAuth2 login page.",
+        responses={302: None},
     )
     def get(self, request):
         from .services import get_github_auth_url
+
         return HttpResponseRedirect(get_github_auth_url())
 
 
@@ -356,6 +365,7 @@ class GithubCallbackView(APIView):
         tags=["Auth"],
         summary="GitHub OAuth Callback",
         description="Handles the callback from GitHub, exchanges code for token, logs in user, and redirects to frontend.",
+        responses={302: None},
     )
     def get(self, request):
         from .services import github_get_access_token
@@ -365,22 +375,26 @@ class GithubCallbackView(APIView):
 
         code = request.query_params.get("code")
         if not code:
-            return Response({"error": "Code not provided"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Code not provided"}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
             token_data = github_get_access_token(code)
             access_token = token_data.get("access_token")
-            
+
             # Reuse existing logic
             serializer = GithubLoginSerializer(data={"access_token": access_token})
             serializer.is_valid(raise_exception=True)
             user = serializer.create_or_get_user()
 
             refresh = RefreshToken.for_user(user)
-            
+
             # Redirect to frontend with tokens
             frontend_url = settings.FRONTEND_URL
-            return redirect(f"{frontend_url}/auth/success?access={str(refresh.access_token)}&refresh={str(refresh)}")
-            
+            return redirect(
+                f"{frontend_url}/auth/success?access={str(refresh.access_token)}&refresh={str(refresh)}"
+            )
+
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
