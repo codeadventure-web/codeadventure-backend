@@ -65,8 +65,8 @@ def test_resume_all_completed(
     resp = api_client.get(url)
 
     assert resp.status_code == 200
-    # Should return last lesson if all done
-    assert resp.data["lesson_slug"] == lesson_generators.slug
+    # Should return first lesson if all done (restart/review)
+    assert resp.data["lesson_slug"] == lesson_decorators.slug
 
 
 @pytest.mark.django_db
