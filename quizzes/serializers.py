@@ -1,11 +1,11 @@
 from rest_framework import serializers
-from .models import Quiz, Question, Choice, QuizAnswer
+from .models import Quiz, Question, Choice
 
 
 class ChoiceSer(serializers.ModelSerializer):
     class Meta:
         model = Choice
-        fields = ("id", "text")
+        fields = ("id", "text", "is_answer")
 
 
 class QuestionSer(serializers.ModelSerializer):
@@ -24,10 +24,9 @@ class QuizSer(serializers.ModelSerializer):
         fields = ("id", "questions")
 
 
-class QuizAnswerSer(serializers.ModelSerializer):
-    class Meta:
-        model = QuizAnswer
-        fields = ("question", "selected_choice_ids")
+class QuizAnswerSer(serializers.Serializer):
+    question = serializers.UUIDField()
+    selected_choice_ids = serializers.ListField(child=serializers.UUIDField())
 
 
 class AttemptSubmitSer(serializers.Serializer):

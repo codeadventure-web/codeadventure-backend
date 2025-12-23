@@ -32,9 +32,7 @@ from common.enums import LessonType, ProgressStatus
 from judge.models import Language, Submission
 from judge.serializers import SubmitSer
 from judge.runner_client import run_in_sandbox
-from quizzes.models import QuizAttempt, QuizAnswer
 from quizzes.serializers import AttemptSubmitSer
-from quizzes.grading import grade_attempt
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 import logging
@@ -413,28 +411,41 @@ class LessonView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        quiz_obj = lesson.quiz
-
         ser = AttemptSubmitSer(data=request.data)
         ser.is_valid(raise_exception=True)
-
-        # Create Attempt
-        attempt = QuizAttempt.objects.create(user=request.user, quiz=quiz_obj)
-
-        # Save answers
         answers_data = ser.validated_data["answers"]
-        for ans_data in answers_data:
-            QuizAnswer.objects.create(
-                attempt=attempt,
-                question=ans_data["question"],
-                selected_choice_ids=ans_data["selected_choice_ids"],
-            )
 
-        # Grade
-        grade_attempt(attempt)
+        # Fetch questions and choices
+        quiz = lesson.quiz
+        questions_map = {
+            str(q.id): q for q in quiz.questions.prefetch_related("choices").all()
+        }
 
-        passed = attempt.is_passed
-        logger.info(f"Quiz attempt {attempt.id} passed: {passed}")
+        total_questions = len(questions_map)
+        correct_count = 0
+
+        # Create a map of user answers for easier lookup
+        user_answers_map = {
+            str(ans["question"]): set(map(str, ans["selected_choice_ids"]))
+            for ans in answers_data
+        }
+
+        for q_id, question in questions_map.items():
+            correct_choice_ids = {
+                str(c.id) for c in question.choices.all() if c.is_answer
+            }
+            user_selected_ids = user_answers_map.get(q_id, set())
+
+            # Check if user selection matches correct choices exactly
+            if user_selected_ids == correct_choice_ids:
+                correct_count += 1
+
+        # Determine pass/fail (Require 100% correctness for now, or could use threshold)
+        passed = (correct_count == total_questions) and (total_questions > 0)
+
+        logger.info(
+            f"Quiz for lesson {lesson.id} passed: {passed} ({correct_count}/{total_questions})"
+        )
 
         if passed:
             services.complete_lesson_for_user(request.user, lesson.id)
@@ -445,7 +456,6 @@ class LessonView(APIView):
             {
                 "passed": passed,
                 "next_url": next_url,
-                "attempt_id": str(attempt.id),
             },
             status=status.HTTP_201_CREATED,
         )

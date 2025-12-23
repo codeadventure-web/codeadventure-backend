@@ -8,8 +8,8 @@ from quizzes.models import Quiz, Question, Choice
 def quiz_lesson(db, course_python):
     quiz = Quiz.objects.create(title="Python Basics Quiz")
     q1 = Question.objects.create(quiz=quiz, text="What is 1+1?")
-    c1 = Choice.objects.create(question=q1, text="2", is_correct=True)
-    c2 = Choice.objects.create(question=q1, text="3", is_correct=False)
+    c1 = Choice.objects.create(question=q1, text="2", is_answer=True)
+    c2 = Choice.objects.create(question=q1, text="3", is_answer=False)
 
     lesson = Lesson.objects.create(
         course=course_python,
@@ -45,6 +45,7 @@ def test_lesson_detail_includes_quiz_data(api_client, course_python, quiz_lesson
     assert len(data["quiz"]["questions"]) == 1
     assert data["quiz"]["questions"][0]["text"] == "What is 1+1?"
     assert len(data["quiz"]["questions"][0]["choices"]) == 2
+    assert "is_answer" in data["quiz"]["questions"][0]["choices"][0]
 
 
 @pytest.mark.django_db
