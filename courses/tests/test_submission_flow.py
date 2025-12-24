@@ -6,7 +6,7 @@ from quizzes.models import Question, Choice
 
 
 @pytest.mark.django_db
-def test_submission_updates_progress_and_returns_next_url(
+def test_submission_returns_queued_status(
     api_client, user_alice, course_python, problem_python, language_python
 ):
     # Setup lessons
@@ -14,13 +14,6 @@ def test_submission_updates_progress_and_returns_next_url(
         course=course_python,
         title="L1",
         order=1,
-        type=LessonType.JUDGE,
-        problem=problem_python,
-    )
-    l2 = Lesson.objects.create(
-        course=course_python,
-        title="L2",
-        order=2,
         type=LessonType.JUDGE,
         problem=problem_python,
     )
@@ -32,64 +25,18 @@ def test_submission_updates_progress_and_returns_next_url(
     # Payload
     data = {"language": language_python.key, "code": "print(1+1)"}
 
-    # Mock sandbox to return 'ac' (Accepted)
-    with patch("courses.views.run_in_sandbox") as mock_run:
-        mock_run.return_value = {
-            "final_status": "ac",
-            "stdout": "2",
-            "stderr": "",
-            "exit_code": 0,
-        }
-
+    # Mock celery task
+    with patch("judge.tasks.run_submission.delay") as mock_delay:
         response = api_client.post(url, data, format="json")
+        mock_delay.assert_called_once()
 
     assert response.status_code == 201
-    assert response.data["passed"] is True
-
-    # Check Progress in Response
-    assert "progress" in response.data
-    assert response.data["progress"]["status"] == ProgressStatus.COMPLETED
-
-    # Check Next URL
-    # Should point to Lesson 2
-    expected_next = f"/{course_python.slug}/{l2.slug}/"
-    assert response.data["next_url"] == expected_next
-
-    # Verify DB
-    p = Progress.objects.get(user=user_alice, lesson=l1)
-    assert p.status == ProgressStatus.COMPLETED
-
-
-@pytest.mark.django_db
-def test_submission_failed_does_not_complete(
-    api_client, user_alice, course_python, problem_python, language_python
-):
-    l1 = Lesson.objects.create(
-        course=course_python,
-        title="L1",
-        order=1,
-        type=LessonType.JUDGE,
-        problem=problem_python,
-    )
-
-    api_client.force_authenticate(user=user_alice)
-    url = f"/api/v1/{course_python.slug}/{l1.slug}/"
-    data = {"language": language_python.key, "code": "error"}
-
-    with patch("courses.views.run_in_sandbox") as mock_run:
-        mock_run.return_value = {
-            "final_status": "wa",  # Wrong Answer
-            "stdout": "0",
-            "stderr": "",
-            "exit_code": 0,
-        }
-
-        response = api_client.post(url, data, format="json")
-
-    assert response.status_code == 201
+    # Since it's async, it returns queued and passed=False initially
     assert response.data["passed"] is False
+    assert response.data["status"] == "queued"
 
-    # Check Progress in Response (Should be incomplete)
+    # Check Progress in Response (Should be INCOMPLETE)
+    assert "progress" in response.data
     assert response.data["progress"]["status"] == ProgressStatus.INCOMPLETE
 
     # Verify DB

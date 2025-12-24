@@ -32,7 +32,7 @@ from common.enums import LessonType, ProgressStatus
 
 from judge.models import Language, Submission
 from judge.serializers import SubmitSer
-from judge.runner_client import run_in_sandbox
+from judge.tasks import run_submission
 from quizzes.serializers import AttemptSubmitSer
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -289,6 +289,7 @@ class LessonView(APIView):
         )
 
         progress_map = {}
+        submission_map = {}
         if request.user.is_authenticated:
             progress_obj = Progress.objects.filter(
                 user=request.user, lesson=lesson
@@ -296,7 +297,19 @@ class LessonView(APIView):
             if progress_obj:
                 progress_map[lesson.id] = progress_obj
 
-        serializer = LessonLiteSer(lesson, context={"progress_map": progress_map})
+            if lesson.problem:
+                sub = (
+                    Submission.objects.filter(user=request.user, problem=lesson.problem)
+                    .order_by("-created_at")
+                    .first()
+                )
+                if sub:
+                    submission_map[lesson.id] = sub
+
+        serializer = LessonLiteSer(
+            lesson,
+            context={"progress_map": progress_map, "submission_map": submission_map},
+        )
         return Response(serializer.data)
 
     @extend_schema(
@@ -305,7 +318,7 @@ class LessonView(APIView):
         request=inline_serializer(
             name="LessonSubmitRequest",
             fields={
-                "language_id": serializers.UUIDField(required=False),
+                "language": serializers.CharField(required=False),
                 "code": serializers.CharField(required=False),
                 "answers": serializers.ListField(required=False),
             },
@@ -315,7 +328,7 @@ class LessonView(APIView):
                 name="LessonSubmitResponse",
                 fields={
                     "passed": serializers.BooleanField(),
-                    "next_url": serializers.CharField(),
+                    "next_url": serializers.CharField(allow_null=True),
                     "submission_id": serializers.CharField(required=False),
                     "status": serializers.CharField(required=False),
                     "summary": serializers.JSONField(required=False),
@@ -370,7 +383,7 @@ class LessonView(APIView):
             and not problem.allowed_languages.filter(id=lang.id).exists()
         ):
             return Response(
-                {"language_id": ["This language is not allowed for this problem."]},
+                {"language": ["This language is not allowed for this problem."]},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -379,24 +392,15 @@ class LessonView(APIView):
             problem=problem,
             language=lang,
             code=ser.validated_data["code"],
-            status="running",
+            status="queued",
         )
 
-        # Run synchronously
-        result = run_in_sandbox(sub)
+        # Run Asynchronously
+        run_submission.delay(sub.id)
 
-        sub.status = result["final_status"]
-        sub.summary = result
-        sub.save(update_fields=["status", "summary"])
-
-        # If Accepted, complete the lesson
-        passed = sub.status == "ac"
-        logger.info(f"Submission {sub.id} status: {sub.status}. Passed: {passed}")
-
-        if passed:
-            progress_obj = services.complete_lesson_for_user(request.user, lesson.id)
-
-        next_url = self.get_next_url(lesson.course, lesson)
+        # Return queued status
+        passed = False
+        next_url = None
 
         return Response(
             {
@@ -405,7 +409,7 @@ class LessonView(APIView):
                 "next_url": next_url,
                 "submission_id": str(sub.id),
                 "status": sub.status,
-                "summary": sub.summary,
+                "summary": {},
             },
             status=status.HTTP_201_CREATED,
         )

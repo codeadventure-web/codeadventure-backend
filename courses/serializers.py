@@ -2,7 +2,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from .models import Course, Lesson, Progress, Tag
 from common.enums import LessonType
-from judge.models import Problem
+from judge.models import Problem, Submission
 from quizzes.serializers import QuizSer
 from typing import Any, Dict, Optional
 
@@ -21,6 +21,12 @@ class ProgressLiteSer(serializers.ModelSerializer):
     class Meta:
         model = Progress
         fields = ("status",)
+
+
+class SubmissionLiteSer(serializers.ModelSerializer):
+    class Meta:
+        model = Submission
+        fields = ("id", "status", "summary", "created_at")
 
 
 class LessonSerializer(serializers.ModelSerializer):
@@ -72,6 +78,7 @@ class LessonLiteSer(serializers.ModelSerializer):
     progress = serializers.SerializerMethodField()
     problem = ProblemLiteSer(read_only=True)
     quiz = serializers.SerializerMethodField()
+    latest_submission = serializers.SerializerMethodField()
 
     class Meta:
         model = Lesson
@@ -85,6 +92,7 @@ class LessonLiteSer(serializers.ModelSerializer):
             "quiz",
             "content_md",
             "progress",
+            "latest_submission",
         )
 
     @extend_schema_field(ProgressLiteSer)
@@ -99,6 +107,14 @@ class LessonLiteSer(serializers.ModelSerializer):
     def get_quiz(self, obj) -> Optional[Dict[str, Any]]:
         if hasattr(obj, "quiz") and obj.quiz:
             return QuizSer(obj.quiz).data
+        return None
+
+    @extend_schema_field(SubmissionLiteSer)
+    def get_latest_submission(self, obj) -> Optional[Dict[str, Any]]:
+        submission_map = self.context.get("submission_map", {})
+        sub = submission_map.get(obj.id)
+        if sub:
+            return SubmissionLiteSer(sub).data
         return None
 
 
