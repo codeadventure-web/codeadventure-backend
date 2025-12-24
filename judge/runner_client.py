@@ -48,7 +48,7 @@ class DockerSandbox:
         try:
             subprocess.run(
                 [
-                    "docker",
+                    "/usr/bin/docker",
                     "run",
                     "--rm",
                     "-d",  # Detached & remove on exit
@@ -79,7 +79,7 @@ class DockerSandbox:
         """Force kill the container and cleanup temp dir."""
         try:
             subprocess.run(
-                ["docker", "rm", "-f", self.container_name],
+                ["/usr/bin/docker", "rm", "-f", self.container_name],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
@@ -95,7 +95,7 @@ class DockerSandbox:
         # Run compilation via docker exec
         try:
             res = subprocess.run(
-                ["docker", "exec", self.container_name, *compile_cmd],
+                ["/usr/bin/docker", "exec", self.container_name, *compile_cmd],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 timeout=30,  # Increased timeout for compilation
@@ -118,7 +118,7 @@ class DockerSandbox:
 
         try:
             res = subprocess.run(
-                ["docker", "exec", "-i", self.container_name, *run_cmd],
+                ["/usr/bin/docker", "exec", "-i", self.container_name, *run_cmd],
                 input=input_data.encode("utf-8"),
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
