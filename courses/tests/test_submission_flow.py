@@ -30,7 +30,7 @@ def test_submission_updates_progress_and_returns_next_url(
     url = f"/api/v1/{course_python.slug}/{l1.slug}/"
 
     # Payload
-    data = {"language_id": language_python.id, "code": "print(1+1)"}
+    data = {"language": language_python.key, "code": "print(1+1)"}
 
     # Mock sandbox to return 'ac' (Accepted)
     with patch("courses.views.run_in_sandbox") as mock_run:
@@ -74,7 +74,7 @@ def test_submission_failed_does_not_complete(
 
     api_client.force_authenticate(user=user_alice)
     url = f"/api/v1/{course_python.slug}/{l1.slug}/"
-    data = {"language_id": language_python.id, "code": "error"}
+    data = {"language": language_python.key, "code": "error"}
 
     with patch("courses.views.run_in_sandbox") as mock_run:
         mock_run.return_value = {

@@ -362,7 +362,7 @@ class LessonView(APIView):
         ser = SubmitSer(data=request.data)
         ser.is_valid(raise_exception=True)
 
-        lang = get_object_or_404(Language, id=ser.validated_data["language_id"])
+        lang = get_object_or_404(Language, key=ser.validated_data["language"])
         problem = lesson.problem
 
         if (
