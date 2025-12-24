@@ -421,7 +421,10 @@ class LessonView(APIView):
         progress_obj, _ = services.get_or_create_progress(request.user, lesson.id)
 
         ser = AttemptSubmitSer(data=request.data)
-        ser.is_valid(raise_exception=True)
+        if not ser.is_valid():
+            logger.error(f"Quiz validation failed: {ser.errors}. Data: {request.data}")
+            return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
+
         answers_data = ser.validated_data["answers"]
 
         # Fetch questions and choices
@@ -435,18 +438,22 @@ class LessonView(APIView):
 
         # Create a map of user answers for easier lookup
         user_answers_map = {
-            str(ans["question"]): set(map(str, ans["selected_choice_ids"]))
+            str(ans["question"]): str(ans["selected_choice_id"])
             for ans in answers_data
         }
 
         for q_id, question in questions_map.items():
-            correct_choice_ids = {
-                str(c.id) for c in question.choices.all() if c.is_answer
-            }
-            user_selected_ids = user_answers_map.get(q_id, set())
+            # Get the correct answer ID (there should be exactly one)
+            correct_choice = question.choices.filter(is_answer=True).first()
+            if not correct_choice:
+                logger.warning(f"Question {q_id} in quiz {quiz.id} has no correct answer set.")
+                continue
 
-            # Check if user selection matches correct choices exactly
-            if user_selected_ids == correct_choice_ids:
+            correct_choice_id = str(correct_choice.id)
+            user_selected_id = user_answers_map.get(q_id)
+
+            # Check if user selection matches correct choice
+            if user_selected_id and user_selected_id == correct_choice_id:
                 correct_count += 1
 
         # Determine pass/fail (Require 100% correctness for now, or could use threshold)

@@ -56,7 +56,7 @@ def test_quiz_submission_success(api_client, user_alice, course_python, quiz_les
     url = f"/api/v1/{course_python.slug}/{lesson.slug}/"
 
     # Correct answer
-    data = {"answers": [{"question": str(q1.id), "selected_choice_ids": [str(c1.id)]}]}
+    data = {"answers": [{"question": str(q1.id), "selected_choice_id": str(c1.id)}]}
 
     resp = api_client.post(url, data, format="json")
     assert resp.status_code == 201
@@ -77,7 +77,7 @@ def test_quiz_submission_failure(api_client, user_alice, course_python, quiz_les
     url = f"/api/v1/{course_python.slug}/{lesson.slug}/"
 
     # Incorrect answer
-    data = {"answers": [{"question": str(q1.id), "selected_choice_ids": [str(c2.id)]}]}
+    data = {"answers": [{"question": str(q1.id), "selected_choice_id": str(c2.id)}]}
 
     resp = api_client.post(url, data, format="json")
     assert resp.status_code == 201

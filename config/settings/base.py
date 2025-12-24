@@ -139,17 +139,27 @@ CELERY_TASK_SOFT_TIME_LIMIT = 55
 
 CORS_ALLOW_ALL_ORIGINS = False
 
-GITHUB_API_URL = "https://api.github.com"
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+]
+
+if os.getenv("FRONTEND_URL"):
+    CORS_ALLOWED_ORIGINS.append(os.getenv("FRONTEND_URL"))
+
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
+
+# Social Auth
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
-GOOGLE_REDIRECT_URI = os.getenv(
-    "GOOGLE_REDIRECT_URI", "http://localhost:8000/api/v1/google/callback/"
-)
+GOOGLE_REDIRECT_URI = f"{BACKEND_URL}/api/v1/google/callback/"
 
 GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID", "")
 GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET", "")
-GITHUB_REDIRECT_URI = os.getenv(
-    "GITHUB_REDIRECT_URI", "http://localhost:8000/api/v1/github/callback/"
-)
+GITHUB_REDIRECT_URI = f"{BACKEND_URL}/api/v1/github/callback/"
 
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+# Media files
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR / "media")

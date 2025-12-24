@@ -28,7 +28,7 @@ class Profile(UUIDModel):
     user = models.OneToOneField(
         "accounts.User", on_delete=models.CASCADE, related_name="profile"
     )
-    avatar = models.URLField(max_length=200, blank=True, null=True)
+    avatar = models.ImageField(upload_to="avatars/", blank=True, null=True)
     bio = models.TextField(blank=True, null=True)
 
     def __str__(self):

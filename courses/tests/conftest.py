@@ -2,18 +2,25 @@ import pytest
 from rest_framework.test import APIClient
 from django.contrib.auth import get_user_model
 from courses.models import Course, Lesson, Tag
-from judge.models import Problem
+from judge.models import Problem, Language
 from quizzes.models import Quiz
 
 User = get_user_model()
 
 
 @pytest.fixture
-def problem_python(db):
-    return Problem.objects.create(
+def language_python(db):
+    return Language.objects.create(key="python", version="3.13")
+
+
+@pytest.fixture
+def problem_python(db, language_python):
+    p = Problem.objects.create(
         title="Sum of Two Numbers",
         slug="sum-of-two",
     )
+    p.allowed_languages.add(language_python)
+    return p
 
 
 @pytest.fixture

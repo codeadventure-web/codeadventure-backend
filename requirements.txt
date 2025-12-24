@@ -11,3 +11,5 @@ whitenoise>=6.7
 django-cors-headers>=4.3
 google-auth>=2.17
 requests>=2.32.3
+Pillow>=10.0.0
+django-nested-admin

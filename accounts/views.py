@@ -12,6 +12,7 @@ from .serializers import (
     LoginResponseSerializer,
 )
 from rest_framework import generics, status, throttling, serializers
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
@@ -123,6 +124,8 @@ class MeView(generics.RetrieveUpdateAPIView):
     serializer_class = UserMeSerializer
     permission_classes = [IsAuthenticated]
 
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
     @extend_schema(
         tags=["Auth"],
         summary="Get current user info",
@@ -137,6 +140,9 @@ class MeView(generics.RetrieveUpdateAPIView):
         description="Updates the profile and account details of the currently authenticated user (Full update).",
     )
     def put(self, request, *args, **kwargs):
+        print("---------------- DEBUG START ----------------")
+        print("1. VIEW RECEIVED FILES:", request.FILES)
+        print("1. VIEW RECEIVED DATA:", request.data)
         return super().put(request, *args, **kwargs)
 
     @extend_schema(

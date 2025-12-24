@@ -20,3 +20,20 @@ class Choice(UUIDModel, TimeStamped):
     )
     text = models.CharField(max_length=500)
     is_answer = models.BooleanField(default=False)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["question"],
+                condition=models.Q(is_answer=True),
+                name="unique_answer_per_question",
+            )
+        ]
+
+    def save(self, *args, **kwargs):
+        if self.is_answer:
+            # Set all other choices for this question to not be the answer
+            Choice.objects.filter(question=self.question, is_answer=True).exclude(
+                pk=self.pk
+            ).update(is_answer=False)
+        super().save(*args, **kwargs)

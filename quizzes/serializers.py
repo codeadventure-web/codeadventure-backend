@@ -5,7 +5,7 @@ from .models import Quiz, Question, Choice
 class ChoiceSer(serializers.ModelSerializer):
     class Meta:
         model = Choice
-        fields = ("id", "text", "is_answer")
+        fields = ("id", "text")
 
 
 class QuestionSer(serializers.ModelSerializer):
@@ -26,7 +26,7 @@ class QuizSer(serializers.ModelSerializer):
 
 class QuizAnswerSer(serializers.Serializer):
     question = serializers.UUIDField()
-    selected_choice_ids = serializers.ListField(child=serializers.UUIDField())
+    selected_choice_id = serializers.UUIDField()
 
 
 class AttemptSubmitSer(serializers.Serializer):

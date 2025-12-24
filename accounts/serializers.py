@@ -37,7 +37,12 @@ class LoginResponseSerializer(serializers.Serializer):
 
 
 class UserMeSerializer(serializers.ModelSerializer):
-    profile = ProfileSerializer()
+    # --- WRITE FIELDS (Input from React) ---
+    avatar = serializers.ImageField(write_only=True, required=False)
+    bio = serializers.CharField(write_only=True, required=False)
+
+    # --- READ FIELDS (Output to React) ---
+    profile = ProfileSerializer(read_only=True)
 
     class Meta:
         model = User
@@ -45,24 +50,32 @@ class UserMeSerializer(serializers.ModelSerializer):
             "id",
             "username",
             "email",
-            "is_superuser",
             "first_name",
             "last_name",
-            "profile",
+            "avatar",
+            "bio",  # Input
+            "profile",  # Output
         )
+        read_only_fields = ("email", "username")
 
     @transaction.atomic
     def update(self, instance, validated_data):
-        profile_data = validated_data.pop("profile", None)
+        # 1. Pop the manual fields
+        avatar_file = validated_data.pop("avatar", None)
+        bio_text = validated_data.pop("bio", None)
 
-        # update user fields
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
+        # 2. Update User fields
+        instance = super().update(instance, validated_data)
 
-        # update or create profile
-        if profile_data:
-            Profile.objects.update_or_create(user=instance, defaults=profile_data)
+        # 3. Update Profile fields
+        profile = instance.profile
+        if avatar_file:
+            print(f"Saving Avatar: {avatar_file}")
+            profile.avatar = avatar_file
+        if bio_text is not None:
+            profile.bio = bio_text
+
+        profile.save()
 
         return instance
 
