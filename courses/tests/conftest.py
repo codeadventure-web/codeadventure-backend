@@ -10,7 +10,7 @@ User = get_user_model()
 
 @pytest.fixture
 def language_python(db):
-    return Language.objects.create(key="python", version="3.13")
+    return Language.objects.create(key="python")
 
 
 @pytest.fixture

@@ -5,7 +5,7 @@ from judge.models import Problem, Language
 
 @pytest.fixture
 def lang_python(db):
-    return Language.objects.create(key="python", version="3.12")
+    return Language.objects.create(key="python")
 
 
 @pytest.fixture
