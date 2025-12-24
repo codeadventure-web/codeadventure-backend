@@ -7,6 +7,7 @@ from .serializers import (
     RegisterSerializer,
     ForgotPasswordSerializer,
     ResetPasswordSerializer,
+    ChangePasswordSerializer,
     GoogleLoginSerializer,
     GithubLoginSerializer,
     LoginResponseSerializer,
@@ -231,6 +232,30 @@ class ResetPasswordView(APIView):
         return Response(
             {"detail": "Password has been reset."}, status=status.HTTP_200_OK
         )
+
+
+class ChangePasswordView(generics.UpdateAPIView):
+    serializer_class = ChangePasswordSerializer
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        tags=["Auth"],
+        summary="Change current user password",
+        description="Updates the password for the currently authenticated user. Requires providing the old password for verification.",
+    )
+    def put(self, request, *args, **kwargs):
+        return super().put(request, *args, **kwargs)
+
+    @extend_schema(
+        tags=["Auth"],
+        summary="Partially change current user password",
+        description="Updates the password for the currently authenticated user. Requires providing the old password for verification.",
+    )
+    def patch(self, request, *args, **kwargs):
+        return super().patch(request, *args, **kwargs)
+
+    def get_object(self):
+        return self.request.user
 
 
 class GoogleLoginView(APIView):
