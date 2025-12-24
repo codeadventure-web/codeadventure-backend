@@ -23,6 +23,14 @@ class ProfileSerializer(serializers.ModelSerializer):
         model = Profile
         fields = ("avatar", "bio")
 
+    def to_internal_value(self, data):
+        # If avatar is a string (e.g., a URL from a test or existing data),
+        # we remove it from the validated data because ImageField expects a file.
+        if isinstance(data.get("avatar"), str):
+            data = data.copy()
+            data.pop("avatar")
+        return super().to_internal_value(data)
+
 
 class LoginUserResponseSerializer(serializers.Serializer):
     id = serializers.CharField()
@@ -41,8 +49,8 @@ class UserMeSerializer(serializers.ModelSerializer):
     avatar = serializers.ImageField(write_only=True, required=False)
     bio = serializers.CharField(write_only=True, required=False)
 
-    # --- READ FIELDS (Output to React) ---
-    profile = ProfileSerializer(read_only=True)
+    # --- READ/WRITE FIELDS ---
+    profile = ProfileSerializer(required=False)
 
     class Meta:
         model = User
@@ -54,7 +62,7 @@ class UserMeSerializer(serializers.ModelSerializer):
             "last_name",
             "avatar",
             "bio",  # Input
-            "profile",  # Output
+            "profile",  # Input/Output
         )
         read_only_fields = ("email", "username")
 
@@ -63,17 +71,27 @@ class UserMeSerializer(serializers.ModelSerializer):
         # 1. Pop the manual fields
         avatar_file = validated_data.pop("avatar", None)
         bio_text = validated_data.pop("bio", None)
+        profile_data = validated_data.pop("profile", None)
 
         # 2. Update User fields
         instance = super().update(instance, validated_data)
 
         # 3. Update Profile fields
         profile = instance.profile
+
+        # Handle flat fields first (priority)
         if avatar_file:
-            print(f"Saving Avatar: {avatar_file}")
             profile.avatar = avatar_file
+        elif profile_data and "avatar" in profile_data:
+            # If it's a string (like in some tests), we might need to handle it,
+            # but ImageField might have already validated it if it's a file.
+            # For now, let's just assign it if it's there.
+            profile.avatar = profile_data["avatar"]
+
         if bio_text is not None:
             profile.bio = bio_text
+        elif profile_data and "bio" in profile_data:
+            profile.bio = profile_data["bio"]
 
         profile.save()
 

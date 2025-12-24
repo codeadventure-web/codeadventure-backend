@@ -1,5 +1,7 @@
 from django.contrib import admin
 from .models import Course, Lesson, Progress, Tag
+from django.urls import reverse
+from django.utils.html import format_html
 
 
 @admin.register(Tag)
@@ -26,9 +28,6 @@ class CourseAdmin(admin.ModelAdmin):
     inlines = [LessonInline]
 
 
-from django.urls import reverse
-from django.utils.html import format_html
-
 @admin.register(Lesson)
 class LessonAdmin(admin.ModelAdmin):
     list_display = ("title", "course", "order", "type", "edit_content_link")
@@ -45,8 +44,11 @@ class LessonAdmin(admin.ModelAdmin):
             return format_html('<a href="{}">Edit Quiz "{}"</a>', url, obj.quiz.title)
         elif obj.type == "JUDGE" and obj.problem:
             url = reverse("admin:judge_problem_change", args=[obj.problem.id])
-            return format_html('<a href="{}">Edit Problem "{}"</a>', url, obj.problem.title)
+            return format_html(
+                '<a href="{}">Edit Problem "{}"</a>', url, obj.problem.title
+            )
         return "-"
+
     edit_content_link.short_description = "Related Content"
 
 

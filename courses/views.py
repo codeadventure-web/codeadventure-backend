@@ -438,15 +438,16 @@ class LessonView(APIView):
 
         # Create a map of user answers for easier lookup
         user_answers_map = {
-            str(ans["question"]): str(ans["selected_choice_id"])
-            for ans in answers_data
+            str(ans["question"]): str(ans["selected_choice_id"]) for ans in answers_data
         }
 
         for q_id, question in questions_map.items():
             # Get the correct answer ID (there should be exactly one)
             correct_choice = question.choices.filter(is_answer=True).first()
             if not correct_choice:
-                logger.warning(f"Question {q_id} in quiz {quiz.id} has no correct answer set.")
+                logger.warning(
+                    f"Question {q_id} in quiz {quiz.id} has no correct answer set."
+                )
                 continue
 
             correct_choice_id = str(correct_choice.id)

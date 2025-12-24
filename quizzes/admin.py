@@ -10,7 +10,9 @@ class ChoiceInlineFormSet(forms.BaseInlineFormSet):
         for form in self.forms:
             if not form.is_valid():
                 continue
-            if form.cleaned_data.get("is_answer") and not form.cleaned_data.get("DELETE"):
+            if form.cleaned_data.get("is_answer") and not form.cleaned_data.get(
+                "DELETE"
+            ):
                 is_answer_count += 1
 
         if is_answer_count > 1:

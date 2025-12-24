@@ -5,7 +5,7 @@ from .models import Quiz, Question, Choice
 class ChoiceSer(serializers.ModelSerializer):
     class Meta:
         model = Choice
-        fields = ("id", "text")
+        fields = ("id", "text", "is_answer")
 
 
 class QuestionSer(serializers.ModelSerializer):
