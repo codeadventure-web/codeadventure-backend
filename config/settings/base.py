@@ -121,6 +121,10 @@ SPECTACULAR_SETTINGS = {
     "SECURITY_SCHEMES": {
         "bearerAuth": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"}
     },
+    "ENUM_NAME_OVERRIDES": {
+        "ProgressStatusEnum": "common.enums.ProgressStatus",
+        "SubmissionStatusEnum": "common.enums.SubmissionStatus",
+    },
 }
 
 SIMPLE_JWT = {

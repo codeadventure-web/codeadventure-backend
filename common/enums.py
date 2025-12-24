@@ -16,6 +16,7 @@ class SubmissionStatus(models.TextChoices):
     ACCEPTED = "ac", "Accepted"
     WRONG_ANSWER = "wa", "Wrong Answer"
     TIME_LIMIT = "tle", "Time Limit"
+    MEMORY_LIMIT = "mle", "Memory Limit"
     RUNTIME_ERROR = "re", "Runtime Error"
     COMPILE_ERROR = "ce", "Compile Error"
 

@@ -634,6 +634,66 @@ paths:
                 type: object
                 additionalProperties: {}
           description: ''
+  /api/v1/lessons/{lesson_id}/complete/:
+    patch:
+      operationId: v1_lessons_complete_partial_update
+      description: Manually marks a lesson as completed for the authenticated user.
+      summary: Mark lesson as complete
+      parameters:
+      - in: path
+        name: lesson_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Progress
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedProgressSerRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedProgressSerRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedProgressSerRequest'
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgressSer'
+          description: ''
+  /api/v1/lessons/by-lesson/{lesson_id}/:
+    get:
+      operationId: v1_lessons_by_lesson_retrieve
+      description: Retrieves the completion status of a specific lesson for the authenticated
+        user.
+      summary: Get progress by lesson ID
+      parameters:
+      - in: path
+        name: lesson_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Progress
+      security:
+      - jwtAuth: []
+      - bearerAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgressSer'
+          description: ''
   /api/v1/lessons/progress/:
     get:
       operationId: v1_lessons_progress_list
@@ -766,16 +826,15 @@ paths:
       - Auth
       requestBody:
         content:
-          application/json:
+          multipart/form-data:
             schema:
               $ref: '#/components/schemas/UserMeRequest'
           application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/UserMeRequest'
-          multipart/form-data:
+          application/json:
             schema:
               $ref: '#/components/schemas/UserMeRequest'
-        required: true
       security:
       - jwtAuth: []
       - bearerAuth: []
@@ -795,13 +854,13 @@ paths:
       - Auth
       requestBody:
         content:
-          application/json:
+          multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedUserMeRequest'
           application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/PatchedUserMeRequest'
-          multipart/form-data:
+          application/json:
             schema:
               $ref: '#/components/schemas/PatchedUserMeRequest'
       security:
@@ -1110,8 +1169,13 @@ components:
           allOf:
           - $ref: '#/components/schemas/ProgressLiteSer'
           readOnly: true
+        latest_submission:
+          allOf:
+          - $ref: '#/components/schemas/SubmissionLiteSer'
+          readOnly: true
       required:
       - id
+      - latest_submission
       - problem
       - progress
       - quiz
@@ -1119,9 +1183,9 @@ components:
     LessonSubmitRequestRequest:
       type: object
       properties:
-        language_id:
+        language:
           type: string
-          format: uuid
+          minLength: 1
         code:
           type: string
           minLength: 1
@@ -1135,6 +1199,7 @@ components:
           type: boolean
         next_url:
           type: string
+          nullable: true
         submission_id:
           type: string
         status:
@@ -1306,32 +1371,31 @@ components:
           items:
             type: string
             minLength: 1
+    PatchedProgressSerRequest:
+      type: object
+      properties:
+        lesson:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/ProgressStatusEnum'
     PatchedUserMeRequest:
       type: object
       properties:
-        username:
-          type: string
-          minLength: 1
-          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
-            only.
-          pattern: ^[\w.@+-]+$
-          maxLength: 150
-        email:
-          type: string
-          format: email
-          title: Email address
-          maxLength: 254
-        is_superuser:
-          type: boolean
-          title: Superuser status
-          description: Designates that this user has all permissions without explicitly
-            assigning them.
         first_name:
           type: string
           maxLength: 150
         last_name:
           type: string
           maxLength: 150
+        avatar:
+          type: string
+          format: binary
+          writeOnly: true
+        bio:
+          type: string
+          writeOnly: true
+          minLength: 1
         profile:
           $ref: '#/components/schemas/ProfileRequest'
     ProblemLiteSer:
@@ -1360,7 +1424,6 @@ components:
           type: string
           format: uri
           nullable: true
-          maxLength: 200
         bio:
           type: string
           nullable: true
@@ -1369,9 +1432,8 @@ components:
       properties:
         avatar:
           type: string
-          format: uri
+          format: binary
           nullable: true
-          maxLength: 200
         bio:
           type: string
           nullable: true
@@ -1379,7 +1441,7 @@ components:
       type: object
       properties:
         status:
-          $ref: '#/components/schemas/StatusEnum'
+          $ref: '#/components/schemas/ProgressStatusEnum'
     ProgressSer:
       type: object
       properties:
@@ -1391,10 +1453,18 @@ components:
           type: string
           format: uuid
         status:
-          $ref: '#/components/schemas/StatusEnum'
+          $ref: '#/components/schemas/ProgressStatusEnum'
       required:
       - id
       - lesson
+    ProgressStatusEnum:
+      enum:
+      - incomplete
+      - completed
+      type: string
+      description: |-
+        * `incomplete` - Incomplete
+        * `completed` - Completed
     QuestionSer:
       type: object
       properties:
@@ -1490,14 +1560,43 @@ components:
           type: string
       required:
       - lesson_slug
-    StatusEnum:
+    SubmissionLiteSer:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        status:
+          $ref: '#/components/schemas/SubmissionStatusEnum'
+        summary: {}
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+    SubmissionStatusEnum:
       enum:
-      - incomplete
-      - completed
+      - queued
+      - running
+      - ac
+      - wa
+      - tle
+      - mle
+      - re
+      - ce
       type: string
       description: |-
-        * `incomplete` - Incomplete
-        * `completed` - Completed
+        * `queued` - Queued
+        * `running` - Running
+        * `ac` - Accepted
+        * `wa` - Wrong Answer
+        * `tle` - Time Limit
+        * `mle` - Memory Limit
+        * `re` - Runtime Error
+        * `ce` - Compile Error
     TokenRefresh:
       type: object
       properties:
@@ -1533,20 +1632,14 @@ components:
           readOnly: true
         username:
           type: string
+          readOnly: true
           description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
             only.
-          pattern: ^[\w.@+-]+$
-          maxLength: 150
         email:
           type: string
           format: email
+          readOnly: true
           title: Email address
-          maxLength: 254
-        is_superuser:
-          type: boolean
-          title: Superuser status
-          description: Designates that this user has all permissions without explicitly
-            assigning them.
         first_name:
           type: string
           maxLength: 150
@@ -1556,40 +1649,28 @@ components:
         profile:
           $ref: '#/components/schemas/Profile'
       required:
+      - email
       - id
-      - profile
       - username
     UserMeRequest:
       type: object
       properties:
-        username:
-          type: string
-          minLength: 1
-          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
-            only.
-          pattern: ^[\w.@+-]+$
-          maxLength: 150
-        email:
-          type: string
-          format: email
-          title: Email address
-          maxLength: 254
-        is_superuser:
-          type: boolean
-          title: Superuser status
-          description: Designates that this user has all permissions without explicitly
-            assigning them.
         first_name:
           type: string
           maxLength: 150
         last_name:
           type: string
           maxLength: 150
+        avatar:
+          type: string
+          format: binary
+          writeOnly: true
+        bio:
+          type: string
+          writeOnly: true
+          minLength: 1
         profile:
           $ref: '#/components/schemas/ProfileRequest'
-      required:
-      - profile
-      - username
   securitySchemes:
     jwtAuth:
       type: http

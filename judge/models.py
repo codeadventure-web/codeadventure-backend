@@ -1,5 +1,6 @@
 from django.db import models
 from common.models import UUIDModel, TimeStamped
+from common.enums import SubmissionStatus
 
 
 class Language(UUIDModel):
@@ -58,17 +59,8 @@ class Submission(UUIDModel, TimeStamped):
     code = models.TextField()
     status = models.CharField(
         max_length=20,
-        default="queued",
-        choices=[
-            ("queued", "Queued"),
-            ("running", "Running"),
-            ("ac", "Accepted"),
-            ("wa", "Wrong Answer"),
-            ("tle", "Time Limit"),
-            ("mle", "Memory Limit"),
-            ("re", "Runtime Error"),
-            ("ce", "Compile Error"),
-        ],
+        default=SubmissionStatus.QUEUED,
+        choices=SubmissionStatus.choices,
     )
     summary = models.JSONField(default=dict)
 
