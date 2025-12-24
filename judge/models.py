@@ -5,13 +5,12 @@ from common.enums import SubmissionStatus
 
 class Language(UUIDModel):
     key = models.CharField(max_length=20, unique=True)  # "python", "cpp", "java"
-    version = models.CharField(max_length=50)
 
     class Meta:
         ordering = ("key",)
 
     def __str__(self) -> str:
-        return f"{self.key} ({self.version})"
+        return self.key
 
 
 class Problem(UUIDModel, TimeStamped):

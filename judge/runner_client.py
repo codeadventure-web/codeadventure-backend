@@ -3,12 +3,15 @@ import tempfile
 import time
 import uuid
 import logging
+import shutil
 from pathlib import Path
 from typing import Dict, Any, List, Tuple
 
 from .models import Submission, TestCase, Problem, Language
 
 logger = logging.getLogger(__name__)
+
+DOCKER_BIN = shutil.which("docker") or "docker"
 
 # Map Language.key to Docker image & commands
 LANGUAGE_CONFIG: Dict[str, Dict[str, Any]] = {
@@ -43,12 +46,23 @@ class DockerSandbox:
     def __enter__(self):
         """Start the container in detached mode (sleeping)."""
         source_filename = self.cfg["source_filename"]
-        (self.tmp_path / source_filename).write_text(self.code, encoding="utf-8")
+        source_file = self.tmp_path / source_filename
+        source_file.write_text(self.code, encoding="utf-8")
+
+        # Ensure world-readable for sandbox user.
+        # On some Docker setups, the container user needs explicit permission
+        # to read files mounted from the host's /tmp.
+        # For languages that compile (like C++), the directory must be writable.
+        try:
+            source_file.chmod(0o644)
+            self.tmp_path.chmod(0o777)
+        except OSError:
+            pass
 
         try:
             subprocess.run(
                 [
-                    "/usr/bin/docker",
+                    DOCKER_BIN,
                     "run",
                     "--rm",
                     "-d",  # Detached & remove on exit
@@ -57,7 +71,6 @@ class DockerSandbox:
                     # "--network=none",  # Allow network for learning
                     f"--memory={self.memory_limit_mb}m",
                     "--cpus=1",
-                    # "--pids-limit=64",  # Removed strict PID limit
                     "-v",
                     f"{self.tmpdir.name}:/workspace:rw",
                     "-w",
@@ -79,7 +92,7 @@ class DockerSandbox:
         """Force kill the container and cleanup temp dir."""
         try:
             subprocess.run(
-                ["/usr/bin/docker", "rm", "-f", self.container_name],
+                [DOCKER_BIN, "rm", "-f", self.container_name],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
@@ -95,7 +108,7 @@ class DockerSandbox:
         # Run compilation via docker exec
         try:
             res = subprocess.run(
-                ["/usr/bin/docker", "exec", self.container_name, *compile_cmd],
+                [DOCKER_BIN, "exec", self.container_name, *compile_cmd],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 timeout=30,  # Increased timeout for compilation
@@ -118,7 +131,7 @@ class DockerSandbox:
 
         try:
             res = subprocess.run(
-                ["/usr/bin/docker", "exec", "-i", self.container_name, *run_cmd],
+                [DOCKER_BIN, "exec", "-i", self.container_name, *run_cmd],
                 input=input_data.encode("utf-8"),
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -178,7 +191,7 @@ def run_in_sandbox(sub: Submission) -> Dict[str, Any]:
                 runtime_ms = int((time.time() - start) * 1000)
 
                 if status == "ok":
-                    if stdout == t.expected_output.strip():
+                    if stdout.strip() == t.expected_output.strip():
                         status = "ac"
                     else:
                         status = "wa"

@@ -6,8 +6,8 @@ class Command(BaseCommand):
     help = "Seed demo data"
 
     def handle(self, *args, **kwargs):
-        Language.objects.get_or_create(key="python", defaults={"version": "3.11"})
-        Language.objects.get_or_create(key="cpp", defaults={"version": "GCC 13"})
+        Language.objects.get_or_create(key="python")
+        Language.objects.get_or_create(key="cpp")
         p, _ = Problem.objects.get_or_create(
             slug="sum-two",
             defaults={

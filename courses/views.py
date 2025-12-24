@@ -37,6 +37,7 @@ from quizzes.serializers import AttemptSubmitSer
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 import logging
+from celery.exceptions import TimeoutError
 
 logger = logging.getLogger(__name__)
 
@@ -348,9 +349,9 @@ class LessonView(APIView):
         )
 
         if lesson.type == LessonType.JUDGE:
-            return self.handle_judge(request, lesson)
+            return self.handle_judge(request, course, lesson)
         elif lesson.type == LessonType.QUIZ:
-            return self.handle_quiz(request, lesson)
+            return self.handle_quiz(request, course, lesson)
         else:
             return Response(
                 {"error": "Unknown lesson type"}, status=status.HTTP_400_BAD_REQUEST
@@ -362,7 +363,7 @@ class LessonView(APIView):
             return f"/{course.slug}/{next_lesson.slug}/"
         return f"/{course.slug}/"
 
-    def handle_judge(self, request, lesson):
+    def handle_judge(self, request, course, lesson):
         if not lesson.problem:
             return Response(
                 {"error": "This lesson does not have a judge problem."},
@@ -396,11 +397,25 @@ class LessonView(APIView):
         )
 
         # Run Asynchronously
-        run_submission.delay(sub.id)
+        task = run_submission.delay(sub.id)
+
+        # Wait briefly for result so frontend gets immediate feedback for short tasks
+        try:
+            task.get(timeout=4)
+            sub.refresh_from_db()
+        except TimeoutError:
+            pass  # Task is taking longer, return "queued"
+        except Exception as e:
+            logger.error(f"Error waiting for submission task: {e}")
 
         # Return queued status
         passed = False
         next_url = None
+
+        if sub.status == "ac":
+            passed = True
+            progress_obj = services.complete_lesson_for_user(request.user, lesson.id)
+            next_url = self.get_next_url(course, lesson)
 
         return Response(
             {
@@ -409,12 +424,12 @@ class LessonView(APIView):
                 "next_url": next_url,
                 "submission_id": str(sub.id),
                 "status": sub.status,
-                "summary": {},
+                "summary": sub.summary,
             },
             status=status.HTTP_201_CREATED,
         )
 
-    def handle_quiz(self, request, lesson):
+    def handle_quiz(self, request, course, lesson):
         if not lesson.quiz:
             return Response(
                 {"error": "This lesson does not have a quiz."},

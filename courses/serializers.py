@@ -3,18 +3,24 @@ from rest_framework import serializers
 from .models import Course, Lesson, Progress, Tag
 from common.enums import LessonType
 from judge.models import Problem, Submission
+from judge.serializers import LanguageSer, TestCaseSer
 from quizzes.serializers import QuizSer
 from typing import Any, Dict, Optional
 
 
 class ProblemLiteSer(serializers.ModelSerializer):
-    from judge.serializers import LanguageSer
-
     allowed_languages = LanguageSer(many=True, read_only=True)
+    sample_testcases = serializers.SerializerMethodField()
 
     class Meta:
         model = Problem
-        fields = ("slug", "title", "allowed_languages")
+        fields = ("slug", "title", "allowed_languages", "sample_testcases")
+
+    @extend_schema_field(TestCaseSer(many=True))
+    def get_sample_testcases(self, obj):
+        # Only return test cases that are NOT hidden
+        samples = obj.testcases.filter(hidden=False)
+        return TestCaseSer(samples, many=True).data
 
 
 class ProgressLiteSer(serializers.ModelSerializer):

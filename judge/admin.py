@@ -1,15 +1,30 @@
 from django.contrib import admin
+from django import forms
 from .models import Language, Problem, TestCase, Submission
 
 
 @admin.register(Language)
 class LanguageAdmin(admin.ModelAdmin):
-    list_display = ("key", "version", "id")
-    search_fields = ("key", "version")
+    list_display = ("key", "id")
+    search_fields = ("key",)
+
+
+class TestCaseForm(forms.ModelForm):
+    class Meta:
+        model = TestCase
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # If this is the first row in the inline formset and it's a new record,
+        # default 'hidden' to False.
+        if self.instance._state.adding and self.prefix == "testcases-0":
+            self.fields["hidden"].initial = False
 
 
 class TestCaseInline(admin.TabularInline):
     model = TestCase
+    form = TestCaseForm
     extra = 1
     fields = ("input_data", "expected_output", "hidden")
     show_change_link = True

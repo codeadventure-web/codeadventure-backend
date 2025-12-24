@@ -1,11 +1,17 @@
 from rest_framework import serializers
-from .models import Language
+from .models import Language, TestCase
 
 
 class LanguageSer(serializers.ModelSerializer):
     class Meta:
         model = Language
-        fields = ("id", "key", "version")
+        fields = ("id", "key")
+
+
+class TestCaseSer(serializers.ModelSerializer):
+    class Meta:
+        model = TestCase
+        fields = ("id", "input_data", "expected_output", "hidden")
 
 
 class SubmitSer(serializers.Serializer):

@@ -4,7 +4,8 @@ FROM python:3.13-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     netcat-openbsd \
-    docker.io && \
+    docker.io \
+    docker-cli && \
     rm -rf /var/lib/apt/lists/*
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
